@@ -107,6 +107,7 @@ class PublicTopicController extends Controller
                         'slug' => $section->slug,
                         'title' => $section->title,
                         'sort_order' => $section->sort_order,
+                        'is_task' => $section->task_submission !== null,
                     ]),
                 ]),
                 'activeSection' => $activeSection ? [
@@ -114,6 +115,7 @@ class PublicTopicController extends Controller
                     'slug' => $activeSection->slug,
                     'title' => $activeSection->title,
                     'content' => $activeSection->content,
+                    'is_task' => $activeSection->task_submission !== null,
                 ] : null,
             ],
         ]);

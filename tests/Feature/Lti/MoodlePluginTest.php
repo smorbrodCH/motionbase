@@ -265,6 +265,28 @@ it('keeps only harmless inline markup', function () {
 
 // ----------------------------------------------------- Autoren und MCP ---
 
+it('creates a task with the scaffolding a task needs', function () {
+    $user = User::factory()->create();
+    $chapter = Chapter::factory()->for(Topic::factory()->for($user))->create();
+
+    actingAs($user)->post("/admin/chapters/{$chapter->id}/sections", ['title' => 'Eigene Kurve bauen', 'kind' => 'task'])
+        ->assertRedirect();
+
+    $task = $chapter->sections()->firstOrFail();
+    $headings = collect($task->content['blocks'])->where('type', 'header')->pluck('data.text');
+
+    // Ohne Abgabe, bis die Autorin eine wählt - in Moodle schon eine Aufgabe
+    expect($task->task_submission)->toBe('none')
+        ->and($headings->all())->toBe(['Anforderungen', 'Vorgehen']);
+
+    actingAs($user)->post("/admin/chapters/{$chapter->id}/sections", ['title' => 'Theorie', 'kind' => 'page'])
+        ->assertRedirect();
+    expect($chapter->sections()->where('title', 'Theorie')->value('task_submission'))->toBeNull();
+
+    actingAs($user)->post("/admin/chapters/{$chapter->id}/sections", ['title' => 'Falsch', 'kind' => 'exam'])
+        ->assertSessionHasErrors('kind');
+});
+
 it('lets authors mark a lesson as a task', function () {
     $user = User::factory()->create();
     $section = Section::factory()->for(Chapter::factory()->for(Topic::factory()->for($user)))->create();

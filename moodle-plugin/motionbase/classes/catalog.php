@@ -29,7 +29,7 @@ class catalog {
                 get_string('assistantsummary', 'filter_motionbase', $topic['title']));
 
             foreach ($topic['chapters'] as $chapter) {
-                if (self::theory($chapter)) {
+                if ($chapter['sections']) {
                     $this->add('chapter:' . $chapter['id'], $chapter['title'], '');
                 }
 
@@ -44,7 +44,7 @@ class catalog {
     }
 
     /**
-     * The chapters of a topic, for "whole course": one book each.
+     * The chapters of a topic that have something to add.
      *
      * @param int $topicid
      * @return int[]
@@ -52,12 +52,41 @@ class catalog {
     public function chapters(int $topicid): array {
         foreach ($this->topics as $topic) {
             if ((int) $topic['id'] === $topicid) {
-                $books = array_filter($topic['chapters'], fn($chapter) => self::theory($chapter) !== []);
-                return array_values(array_map(fn($chapter) => (int) $chapter['id'], $books));
+                $filled = array_filter($topic['chapters'], fn($chapter) => (bool) $chapter['sections']);
+                return array_values(array_map(fn($chapter) => (int) $chapter['id'], $filled));
             }
         }
 
         return [];
+    }
+
+    /**
+     * A chapter's tasks - in Moodle each becomes an assignment of its own.
+     *
+     * @param int $chapterid
+     * @return int[]
+     */
+    public function tasks(int $chapterid): array {
+        foreach ($this->topics as $topic) {
+            foreach ($topic['chapters'] as $chapter) {
+                if ((int) $chapter['id'] === $chapterid) {
+                    $tasks = array_filter($chapter['sections'], fn($section) => !empty($section['task']));
+                    return array_values(array_map(fn($section) => (int) $section['id'], $tasks));
+                }
+            }
+        }
+
+        return [];
+    }
+
+    /**
+     * Is this already in the course?
+     *
+     * @param string $value e.g. "task:67"
+     * @return bool
+     */
+    public function has(string $value): bool {
+        return in_array($value, $this->present, true);
     }
 
     /**
@@ -98,53 +127,79 @@ class catalog {
      */
     public function export(): array {
         return array_map(function(array $topic) {
-            $tasks = [];
             $chapters = [];
-            $books = [];
+            $parts = [];
 
             foreach ($topic['chapters'] as $chapter) {
-                foreach ($chapter['sections'] as $section) {
-                    if (!empty($section['task'])) {
-                        $tasks[] = $this->item('task:' . $section['id'], $section['title'],
-                            get_string('task_' . $section['task'], 'filter_motionbase') . ' · ' . $chapter['title'],
-                            $topic['title'] . ' ' . $chapter['title'] . ' ' . $section['title'] . ' '
-                                . get_string('tasks', 'filter_motionbase'));
-                    }
-                }
-
-                // Theory only: a chapter of nothing but tasks makes no book.
-                $theory = self::theory($chapter);
-                if (!$theory) {
+                if (!$chapter['sections']) {
                     continue;
                 }
 
-                $lessons = array_map(fn($section) => $this->item('section:' . $section['id'], $section['title'],
-                    get_string('pagemeta', 'filter_motionbase'),
-                    $topic['title'] . ' ' . $chapter['title'] . ' ' . $section['title']), $theory);
+                $theory = self::theory($chapter);
+                $tasks = array_values(array_filter($chapter['sections'], fn($section) => !empty($section['task'])));
 
-                $books[] = 'chapter:' . $chapter['id'];
-                $chapters[] = $this->item('chapter:' . $chapter['id'], $chapter['title'],
-                    get_string('bookmeta', 'filter_motionbase', self::lessons(count($theory))),
-                    $topic['title'] . ' ' . $chapter['title'],
-                    ['lessons' => $lessons, 'haslessons' => count($lessons) > 1]);
+                // Ein Haken bringt das ganze Kapitel: das Buch und seine Aufgaben.
+                $pieces = array_merge(
+                    $theory ? ['chapter:' . $chapter['id']] : [],
+                    array_map(fn($task) => 'task:' . $task['id'], $tasks)
+                );
+                $parts = array_merge($parts, $pieces);
+
+                // Einzeln wählbar: jede Theorieseite als Textseite, jede Aufgabe für sich.
+                $lessons = array_merge(
+                    array_map(fn($section) => $this->item('section:' . $section['id'], $section['title'],
+                        get_string('pagemeta', 'filter_motionbase'),
+                        $topic['title'] . ' ' . $chapter['title'] . ' ' . $section['title']), $theory),
+                    array_map(fn($task) => $this->item('task:' . $task['id'], $task['title'],
+                        get_string('task_' . $task['task'], 'filter_motionbase'),
+                        $topic['title'] . ' ' . $chapter['title'] . ' ' . $task['title'] . ' '
+                            . get_string('tasks', 'filter_motionbase')), $tasks)
+                );
+
+                $chapters[] = ['present' => !array_diff($pieces, $this->present)]
+                    + $this->item('chapter:' . $chapter['id'], $chapter['title'],
+                        self::chaptermeta(count($theory), count($tasks)),
+                        $topic['title'] . ' ' . $chapter['title'],
+                        ['lessons' => $lessons, 'haslessons' => count($lessons) > 1]);
             }
 
             return [
                 'id' => $topic['id'],
                 'title' => $topic['title'],
                 'meta' => self::lessons($topic['lessons']),
-                'tasks' => $tasks,
-                'hastasks' => (bool) $tasks,
-                // A whole course is there when a book for each of its chapters is.
-                'whole' => $books ? ['present' => !array_diff($books, $this->present)]
+                // Ein Kurs ist da, wenn jedes seiner Kapitel da ist.
+                'whole' => $chapters ? ['present' => !array_diff($parts, $this->present)]
                     + $this->item('topic:' . $topic['id'], get_string('wholecourse', 'filter_motionbase'),
-                        get_string('wholecoursemeta', 'filter_motionbase', count($books)), $topic['title']) : null,
+                        get_string('wholecoursemeta', 'filter_motionbase', count($chapters)), $topic['title']) : null,
                 'chapters' => $chapters,
                 'assistant' => $this->item('chat:' . $topic['id'], get_string('assistant', 'filter_motionbase'),
                     get_string('assistantmeta', 'filter_motionbase', $topic['title']),
                     $topic['title'] . ' ' . get_string('assistant', 'filter_motionbase') . ' chat ki ai'),
             ];
         }, $this->topics);
+    }
+
+    /**
+     * "Buch · 3 Lektionen · 2 Aufgaben" - was aus dem Kapitel in Moodle entsteht.
+     *
+     * @param int $theory
+     * @param int $tasks
+     * @return string
+     */
+    private static function chaptermeta(int $theory, int $tasks): string {
+        $parts = [];
+
+        if ($theory) {
+            $parts[] = get_string('bookmeta', 'filter_motionbase', self::lessons($theory));
+        }
+
+        if ($tasks) {
+            $parts[] = $tasks === 1
+                ? get_string('task', 'filter_motionbase')
+                : get_string('taskcount', 'filter_motionbase', $tasks);
+        }
+
+        return implode(' · ', $parts);
     }
 
     /**

@@ -1,12 +1,15 @@
 # MotionBase für Moodle (filter_motionbase)
 
 Ein Knopf für Lehrpersonen: **„Aus MotionBase hinzufügen“** – unten in der
-Aktivitätsauswahl und im Kurs unter *Mehr*. Dort kreuzen sie an, was die
-Klasse bekommt, und erhalten Moodles eigene Aktivitäten:
+Aktivitätsauswahl und im Kurs unter *Mehr*. Dort genügt **ein Haken pro
+Kapitel**: Daraus entstehen Moodles eigene Aktivitäten, das Buch mit der
+Theorie und je eine Aufgabe. Wer einzelne Seiten will, klappt *Einzeln wählen*
+auf. Ein Kapitel, das schon im Kurs ist, kann man gefahrlos nochmals
+ankreuzen: Angelegt wird nur, was fehlt.
 
 | In MotionBase | In Moodle |
 |---|---|
-| Kapitel | **Buch**, eine Lektion pro Buchkapitel |
+| Kapitel | **Buch** mit der Theorie, dazu je eine **Aufgabe** |
 | Ganzer Kurs | ein Buch pro Kapitel |
 | Lektion | **Textseite** |
 | Als Aufgabe markierte Lektion | **Aufgabe**, Abgabe wie in MotionBase festgelegt (keine, Datei, Text, Datei oder Text) |

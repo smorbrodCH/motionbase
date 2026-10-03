@@ -17,10 +17,13 @@
         "error": null,
         "empty": false,
         "topics": [{
-            "id": 1, "title": "Easing", "meta": "4 Lektionen", "hastasks": true,
-            "tasks": [{"value": "task:7", "name": "Bubblesort", "meta": "Aufgabe · Abgabe als Datei · Grundlagen", "label": "Bubblesort", "search": "bubblesort", "present": false}],
-            "whole": {"value": "topic:1", "name": "Ganzer Kurs", "meta": "Alle Kapitel", "label": "Easing", "search": "easing", "present": false},
-            "chapters": [{"value": "chapter:3", "name": "Grundlagen", "meta": "Kapitel · 4 Lektionen", "label": "Easing – Grundlagen", "search": "easing grundlagen", "present": true, "haslessons": false, "lessons": []}],
+            "id": 1, "title": "Easing", "meta": "4 Lektionen",
+            "whole": {"value": "topic:1", "name": "Ganzer Kurs", "meta": "Alle Kapitel mit Aufgaben · 2 Kapitel", "label": "Easing", "search": "easing", "present": false},
+            "chapters": [{"value": "chapter:3", "name": "Grundlagen", "meta": "Buch · 4 Lektionen · 1 Aufgabe", "label": "Grundlagen", "search": "easing grundlagen", "present": false, "haslessons": true,
+                "lessons": [
+                    {"value": "section:9", "name": "Was ist Easing?", "meta": "Textseite", "label": "Was ist Easing?", "search": "easing", "present": false},
+                    {"value": "task:7", "name": "Eigene Kurve bauen", "meta": "Aufgabe · Abgabe als Datei", "label": "Eigene Kurve bauen", "search": "kurve", "present": false}
+                ]}],
             "assistant": {"value": "chat:1", "name": "KI-Assistent", "meta": "Beantwortet Fragen", "label": "Easing – KI-Assistent", "search": "easing ki", "present": false}
         }]
     }
@@ -69,15 +72,7 @@
                 <span class="text-muted small">{{meta}}</span>
             </header>
 
-            {{#hastasks}}
-                <div class="mbpicker-group" data-group>
-                    <h4 class="mbpicker-group__title">{{#str}} tasks, filter_motionbase {{/str}} <span>{{#str}} tasksintro, filter_motionbase {{/str}}</span></h4>
-                    {{#tasks}}{{> filter_motionbase/option }}{{/tasks}}
-                </div>
-            {{/hastasks}}
-
             <div class="mbpicker-group" data-group>
-                <h4 class="mbpicker-group__title">{{#str}} content, filter_motionbase {{/str}}</h4>
                 {{#whole}}{{> filter_motionbase/option }}{{/whole}}
                 {{#chapters}}
                     <div data-chapter>

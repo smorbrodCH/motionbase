@@ -73,7 +73,7 @@ export interface Chapter {
     slug: string;
     is_published: boolean;
     sort_order: number;
-    sections: Pick<Section, 'id' | 'slug' | 'title' | 'sort_order' | 'is_published'>[];
+    sections: Pick<Section, 'id' | 'slug' | 'title' | 'sort_order' | 'is_published' | 'task_submission'>[];
     created_at?: string;
     updated_at?: string;
 }

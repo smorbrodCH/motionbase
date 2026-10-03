@@ -51,56 +51,118 @@ if ($tool && !$error && data_submitted() && confirm_sesskey()) {
     )));
     $target = required_param('target', PARAM_INT);
 
-    $added = [];
-    $failed = [];
-
-    foreach ($items as $item) {
+    /**
+     * What one tick brings: a chapter brings its book and its tasks, a whole
+     * course every chapter that way. Everything else stands for itself.
+     */
+    $pieces = function(string $item) use ($catalog): array {
         [$type, $id] = explode(':', $item);
-        $option = $catalog->option($item);
+        $chapters = match ($type) {
+            'topic' => $catalog->chapters((int) $id),
+            'chapter' => [(int) $id],
+            default => [],
+        };
+
+        if (!$chapters) {
+            return [$item];
+        }
+
+        $pieces = [];
+        foreach ($chapters as $chapterid) {
+            $pieces[] = 'chapter:' . $chapterid;
+            foreach ($catalog->tasks($chapterid) as $taskid) {
+                $pieces[] = 'task:' . $taskid;
+            }
+        }
+
+        return $pieces;
+    };
+
+    /**
+     * Makes one piece, or nothing where the course already has it - ticking
+     * the same chapter twice adds what is missing instead of a second copy.
+     *
+     * @return string|null The activity's name, null if there was nothing to do
+     */
+    $make = function(string $piece) use ($course, $target, $context, $catalog, $tool): ?string {
+        $option = $catalog->option($piece);
 
         // Only what the catalogue offered: an id that isn't in it is gone
         // from MotionBase, or was never there.
-        if (!$option) {
-            continue;
+        if (!$option || $catalog->has($piece)) {
+            return null;
         }
 
-        try {
-            switch ($type) {
-                case 'task':
-                    require_capability('mod/assign:addinstance', $context);
-                    creator::assignment($course, $target, client::get('tasks/' . (int) $id));
-                    $added[] = $option['title'];
-                    break;
+        [$type, $id] = explode(':', $piece);
 
-                case 'section':
-                    require_capability('mod/page:addinstance', $context);
-                    creator::page($course, $target, client::get('lessons/' . (int) $id));
-                    $added[] = $option['title'];
-                    break;
+        switch ($type) {
+            case 'task':
+                require_capability('mod/assign:addinstance', $context);
+                creator::assignment($course, $target, client::get('tasks/' . (int) $id));
+                break;
 
-                case 'chapter':
-                case 'topic':
-                    require_capability('mod/book:addinstance', $context);
-                    foreach ($type === 'topic' ? $catalog->chapters((int) $id) : [(int) $id] as $chapterid) {
-                        $chapter = client::get('chapters/' . $chapterid . '?html=1');
-                        creator::book($course, $target, $chapter);
-                        $added[] = $chapter['title'];
-                    }
-                    break;
+            case 'section':
+                require_capability('mod/page:addinstance', $context);
+                creator::page($course, $target, client::get('lessons/' . (int) $id));
+                break;
 
-                case 'chat':
-                    require_capability('mod/lti:addpreconfiguredinstance', $context);
-                    creator::activity($course, $target, $tool, $item, $option['title'], $option['summary']);
-                    $added[] = $option['title'];
-                    break;
+            case 'chapter':
+                require_capability('mod/book:addinstance', $context);
+                $chapter = client::get('chapters/' . (int) $id . '?html=1');
+
+                // A chapter of nothing but tasks has no book; its tasks come
+                // along as pieces of their own.
+                if (!$chapter['lessons']) {
+                    return null;
+                }
+
+                creator::book($course, $target, $chapter);
+                break;
+
+            case 'chat':
+                require_capability('mod/lti:addpreconfiguredinstance', $context);
+                creator::activity($course, $target, $tool, $piece, $option['title'], $option['summary']);
+                break;
+
+            default:
+                return null;
+        }
+
+        return $option['title'];
+    };
+
+    $added = [];
+    $failed = [];
+    $skipped = 0;
+    $done = [];
+
+    foreach ($items as $item) {
+        foreach ($pieces($item) as $piece) {
+            if (isset($done[$piece])) {
+                continue;
             }
-        } catch (moodle_exception $e) {
-            $failed[] = $option['title'] . ' (' . $e->getMessage() . ')';
+            $done[$piece] = true;
+
+            try {
+                if ($title = $make($piece)) {
+                    $added[] = $title;
+                } else if ($catalog->has($piece)) {
+                    $skipped++;
+                }
+            } catch (moodle_exception $e) {
+                $failed[] = ($catalog->option($piece)['title'] ?? $piece) . ' (' . $e->getMessage() . ')';
+            }
         }
     }
 
     if ($failed) {
         \core\notification::warning(get_string('failed', 'filter_motionbase', implode(', ', $failed)));
+    }
+
+    if ($skipped) {
+        \core\notification::info($skipped === 1
+            ? get_string('skippedone', 'filter_motionbase')
+            : get_string('skipped', 'filter_motionbase', $skipped));
     }
 
     if ($added) {
@@ -110,7 +172,7 @@ if ($tool && !$error && data_submitted() && confirm_sesskey()) {
         redirect(course_get_url($course, $target), $message, null, \core\output\notification::NOTIFY_SUCCESS);
     }
 
-    if (!$failed) {
+    if (!$failed && !$skipped) {
         \core\notification::info(get_string('nothingselected', 'filter_motionbase'));
     }
 }

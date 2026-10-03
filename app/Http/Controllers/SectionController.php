@@ -10,6 +10,27 @@ use Illuminate\Support\Facades\DB;
 
 class SectionController extends Controller
 {
+    /**
+     * Das Gerüst einer Aufgabe: Auftrag, Anforderungen, Vorgehen. So steht in
+     * Moodle von Anfang an das, was eine Aufgabe braucht.
+     *
+     * @return array<int, array<string, mixed>>
+     */
+    private static function taskTemplate(): array
+    {
+        return [
+            ['type' => 'paragraph', 'data' => ['text' => 'Worum geht es? Beschreibe den Auftrag in zwei, drei Sätzen.']],
+            ['type' => 'header', 'data' => ['text' => 'Anforderungen', 'level' => 2]],
+            ['type' => 'list', 'data' => ['style' => 'unordered', 'items' => [
+                ['content' => 'Woran erkennt man, dass die Aufgabe gelöst ist?', 'meta' => [], 'items' => []],
+            ]]],
+            ['type' => 'header', 'data' => ['text' => 'Vorgehen', 'level' => 2]],
+            ['type' => 'list', 'data' => ['style' => 'ordered', 'items' => [
+                ['content' => 'Erster Schritt', 'meta' => [], 'items' => []],
+            ]]],
+        ];
+    }
+
     public function store(Request $request, Chapter $chapter): RedirectResponse
     {
         $this->authorize('update', $chapter->topic);
@@ -17,8 +38,11 @@ class SectionController extends Controller
         $validated = $request->validate([
             'title' => ['required', 'string', 'max:255'],
             'slug' => ['nullable', 'string', 'max:255'],
+            // Theorie oder Aufgabe: bestimmt, was Moodle daraus macht
+            'kind' => ['nullable', 'in:page,task'],
         ]);
 
+        $isTask = ($validated['kind'] ?? 'page') === 'task';
         $maxSortOrder = $chapter->sections()->max('sort_order') ?? -1;
 
         $section = $chapter->sections()->create([
@@ -26,7 +50,7 @@ class SectionController extends Controller
             'slug' => $chapter->sections()->make()->uniqueSlug($validated['slug'] ?? $validated['title']),
             'content' => [
                 'time' => now()->getTimestampMs(),
-                'blocks' => [
+                'blocks' => $isTask ? self::taskTemplate() : [
                     [
                         'type' => 'paragraph',
                         'data' => ['text' => 'Beginne hier mit deinem Inhalt...'],
@@ -34,12 +58,15 @@ class SectionController extends Controller
                 ],
                 'version' => '2.31.0',
             ],
+            // Ohne Abgabe, bis die Autorin eine wählt - in Moodle eine Aufgabe,
+            // bei der im Unterricht abgegeben wird.
+            'task_submission' => $isTask ? 'none' : null,
             'sort_order' => $maxSortOrder + 1,
         ]);
 
         return redirect()
             ->route('topics.edit', ['topic' => $chapter->topic, 'section' => $section->id])
-            ->with('flash', ['status' => 'success', 'message' => 'Abschnitt erstellt.']);
+            ->with('flash', ['status' => 'success', 'message' => $isTask ? 'Aufgabe erstellt.' : 'Seite erstellt.']);
     }
 
     public function update(Request $request, Section $section): RedirectResponse

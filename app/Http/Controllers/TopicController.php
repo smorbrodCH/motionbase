@@ -140,6 +140,8 @@ class TopicController extends Controller
                         'title' => $section->title,
                         'sort_order' => $section->sort_order,
                         'is_published' => $section->is_published,
+                        // Theorie oder Aufgabe - das Symbol in der Liste hängt daran
+                        'task_submission' => $section->task_submission,
                     ]),
                 ]),
             ],
@@ -149,6 +151,7 @@ class TopicController extends Controller
                 'title' => $activeSection->title,
                 'content' => $activeSection->content,
                 'is_published' => $activeSection->is_published,
+                'task_submission' => $activeSection->task_submission,
             ] : null,
             'categories' => $this->categoriesForSelect(),
         ]);

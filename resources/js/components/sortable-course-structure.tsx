@@ -24,6 +24,7 @@ import {
     Check,
     ChevronDown,
     ChevronRight,
+    ClipboardList,
     FileText,
     FolderOpen,
     GripVertical,
@@ -285,7 +286,7 @@ function SortableSectionItem({
     isActive,
     onNavigate,
 }: {
-    section: Pick<Section, 'id' | 'title' | 'slug' | 'sort_order' | 'is_published'>;
+    section: Pick<Section, 'id' | 'title' | 'slug' | 'sort_order' | 'is_published' | 'task_submission'>;
     isActive: boolean;
     onNavigate: () => void;
 }) {
@@ -335,12 +336,17 @@ function SortableSectionItem({
                 className="flex flex-1 items-center gap-2 text-left"
                 onClick={onNavigate}
             >
-                <FileText
-                    className={cn(
-                        'h-4 w-4 shrink-0',
-                        isActive ? 'text-white/70' : 'text-zinc-400',
-                    )}
-                />
+                {/* Theorie oder Aufgabe - in Moodle wird daraus eine Textseite
+                    beziehungsweise eine Aufgabe. */}
+                {!section.task_submission ? (
+                    <FileText
+                        className={cn('h-4 w-4 shrink-0', isActive ? 'text-white/70' : 'text-zinc-400')}
+                    />
+                ) : (
+                    <ClipboardList
+                        className={cn('h-4 w-4 shrink-0', isActive ? 'text-white' : 'text-pink-500')}
+                    />
+                )}
                 <span className="truncate text-sm">
                     {section.title}
                 </span>

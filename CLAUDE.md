@@ -46,8 +46,8 @@ in Moodle daraus wird. Gibt es darauf keine Antwort, ist die Funktion nicht fert
 > damit ich keine Überraschungen im Kurs habe.
 
 - In der Auswahl steht bei jeder Zeile, was daraus wird (Buch, Textseite, Aufgabe mit Abgabeart).
-- Was schon im Kurs ist, ist als solches markiert.
-- Mehreres auf einmal übernehmen ist der Normalfall, nicht die Ausnahme.
+- **Ein Haken pro Kapitel reicht.** Einzelne Seiten gibt es, aber eingeklappt.
+- Was schon im Kurs ist, ist markiert; nochmals ankreuzen legt nur das Fehlende an.
 
 ### 4. Ein zweites Mal übernehmen macht kein Durcheinander
 
@@ -63,8 +63,8 @@ in Moodle daraus wird. Gibt es darauf keine Antwort, ist die Funktion nicht fert
 
 | MotionBase | Moodle | Wie |
 |---|---|---|
-| Kapitel | **Buch**, ein Buchkapitel pro Theorieseite | Inhalt live, Struktur beim Öffnen abgeglichen |
-| Ganzer Kurs | ein **Buch pro Kapitel** | |
+| Kapitel | **Buch** mit der Theorie **und je eine Aufgabe** | ein Haken pro Kapitel; Inhalt live, Struktur beim Öffnen abgeglichen |
+| Ganzer Kurs | jedes Kapitel so | |
 | Einzelne Seite | **Textseite** | Inhalt live |
 | Aufgabe | **Aufgabe** mit Abgabe (keine, Datei, Text, beides) | Inhalt live, Bewertung in Moodle |
 | Interaktive Grafik | eingebettet in Buch/Textseite/Aufgabe | läuft weiter auf MotionBase, Höhe meldet sie selbst |
@@ -91,8 +91,9 @@ weist sich mit dem LTI-Schlüssel des Moodle aus. Details: `moodle-plugin/motion
 - **Wissenscheck:** Quizblöcke erscheinen in Moodle noch gar nicht. Zu entscheiden: eingebettet aus
   MotionBase (Selbstkontrolle, keine Noten) oder als nativer Moodle-Test – Letzteres widerspricht «keine
   Prüfungen».
-- **Backend trennt Seite und Aufgabe noch nicht sichtbar** (Story 2). Heute hängt es am Feld
-  `sections.task_submission`; die Seitenliste zeigt den Unterschied nicht.
+- Story 2 ist umgesetzt: Beim Anlegen wählt man Theorie oder Aufgabe, die Seitenliste zeigt es am Symbol,
+  die Abgabeart erscheint nur bei Aufgaben. Technisch hängt es weiterhin an `sections.task_submission`
+  (gesetzt = Aufgabe), eine eigene Spalte braucht es dafür nicht.
 - **KI-Assistent** ist das einzige Stück, das noch über LTI läuft.
 
 ## Umgebung

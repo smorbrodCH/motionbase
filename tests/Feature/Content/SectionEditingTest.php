@@ -4,6 +4,7 @@ use App\Models\Chapter;
 use App\Models\Section;
 use App\Models\Topic;
 use App\Models\User;
+use Inertia\Testing\AssertableInertia as Assert;
 
 use function Pest\Laravel\actingAs;
 
@@ -116,4 +117,18 @@ it('keeps a topic from losing its last section', function () {
     actingAs($user)->delete("/admin/sections/{$section->id}")->assertRedirect();
 
     expect(Section::whereKey($section->id)->exists())->toBeTrue();
+});
+
+it('tells the editor whether a page is theory or a task', function () {
+    $user = User::factory()->create();
+    $chapter = Chapter::factory()->for(Topic::factory()->for($user))->create();
+    $task = Section::factory()->for($chapter)->create(['task_submission' => 'file']);
+
+    // Ohne dieses Feld zeigt der Editor jede Seite als Theorie, auch eine Aufgabe.
+    actingAs($user)->get(route('topics.edit.section', ['topic' => $chapter->topic, 'section' => $task]))
+        ->assertOk()
+        ->assertInertia(fn (Assert $page) => $page
+            ->where('activeSection.task_submission', 'file')
+            ->where('topic.chapters.0.sections.0.task_submission', 'file')
+        );
 });

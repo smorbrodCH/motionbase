@@ -6,7 +6,7 @@ import { Head, Link, router } from '@inertiajs/react';
 import type { OutputBlockData } from '@editorjs/editorjs';
 import { createElement, type ReactNode, useEffect, useMemo, useRef, useState, useCallback } from 'react';
 import { cn } from '@/lib/utils';
-import { ChevronDown, ChevronRight, List, CheckCircle2, XCircle, ArrowRight } from 'lucide-react';
+import { ChevronDown, ChevronRight, ClipboardList, List, CheckCircle2, XCircle, ArrowRight } from 'lucide-react';
 import { TopicChat } from '@/components/topic-chat';
 import Prism from 'prismjs';
 import 'prismjs/components/prism-javascript';
@@ -21,7 +21,8 @@ import 'prismjs/components/prism-json';
 interface PublicTopicShowProps {
     topic: Topic & {
         chapters: Array<Chapter>;
-        activeSection: Section | null;
+        // is_task: in Moodle wird daraus eine Aufgabe, hier trägt sie ein Abzeichen.
+        activeSection: (Section & { is_task?: boolean }) | null;
     };
 }
 
@@ -234,6 +235,12 @@ export default function PublicTopicShow({ topic }: PublicTopicShowProps) {
                             <h1 className="text-3xl font-bold tracking-tight text-zinc-900 sm:text-5xl leading-tight">
                                 {activeSection?.title ?? topic.title}
                             </h1>
+                            {activeSection?.is_task && (
+                                <span className="inline-flex items-center gap-1.5 rounded-full bg-zinc-100 px-3 py-1 text-xs font-medium text-zinc-700">
+                                    <ClipboardList className="h-3.5 w-3.5" />
+                                    Aufgabe
+                                </span>
+                            )}
                         </header>
 
                         {tocItems.length > 0 && (

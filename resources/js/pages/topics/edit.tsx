@@ -19,6 +19,7 @@ import {
     ArrowLeft,
     Check,
     ChevronRight,
+    ClipboardList,
     Code,
     Copy,
     FileText,
@@ -984,29 +985,73 @@ export default function TopicsEdit({ topic, activeSection, categories }: TopicsE
                                         </div>
 
                                         <div className="space-y-2">
-                                            <Label className="text-xs font-semibold">Moodle-Aufgabe</Label>
-                                            <Select
-                                                value={sectionSettingsForm.data.task_submission ?? 'no'}
-                                                onValueChange={(value) => sectionSettingsForm.setData(
-                                                    'task_submission',
-                                                    value === 'no' ? null : (value as Section['task_submission']),
-                                                )}
-                                            >
-                                                <SelectTrigger className="h-9 text-sm">
-                                                    <SelectValue />
-                                                </SelectTrigger>
-                                                <SelectContent>
-                                                    <SelectItem value="no">Keine Aufgabe</SelectItem>
-                                                    <SelectItem value="none">Aufgabe ohne Abgabe</SelectItem>
-                                                    <SelectItem value="file">Aufgabe, Abgabe als Datei</SelectItem>
-                                                    <SelectItem value="text">Aufgabe, Abgabe als Text</SelectItem>
-                                                    <SelectItem value="both">Aufgabe, Abgabe als Datei oder Text</SelectItem>
-                                                </SelectContent>
-                                            </Select>
-                                            <p className="text-xs text-muted-foreground">
-                                                Mit dem MotionBase-Plugin übernimmt Moodle diese Lektion als Aufgabe. Bewertet wird in Moodle.
-                                            </p>
+                                            <Label className="text-xs font-semibold">Art der Seite</Label>
+                                            {/* Was in Moodle daraus wird, hängt allein hieran. */}
+                                            <div className="grid grid-cols-2 gap-2">
+                                                {[
+                                                    { kind: 'page' as const, label: 'Theorie', icon: FileText },
+                                                    { kind: 'task' as const, label: 'Aufgabe', icon: ClipboardList },
+                                                ].map(({ kind, label, icon: Icon }) => {
+                                                    const active = kind === 'task'
+                                                        ? !!sectionSettingsForm.data.task_submission
+                                                        : !sectionSettingsForm.data.task_submission;
+
+                                                    return (
+                                                        <button
+                                                            key={kind}
+                                                            type="button"
+                                                            onClick={() => sectionSettingsForm.setData(
+                                                                'task_submission',
+                                                                kind === 'task' ? (sectionSettingsForm.data.task_submission ?? 'none') : null,
+                                                            )}
+                                                            className={cn(
+                                                                'flex items-center justify-center gap-2 rounded-lg border px-3 py-2 text-sm transition-colors',
+                                                                active
+                                                                    ? 'border-zinc-900 bg-zinc-900 text-white'
+                                                                    : 'border-zinc-200 text-zinc-600 hover:border-zinc-300 hover:bg-zinc-50',
+                                                            )}
+                                                        >
+                                                            <Icon className="h-4 w-4" />
+                                                            {label}
+                                                        </button>
+                                                    );
+                                                })}
+                                            </div>
                                         </div>
+
+                                        {!!sectionSettingsForm.data.task_submission && (
+                                            <div className="space-y-2">
+                                                <Label className="text-xs font-semibold">Abgabe</Label>
+                                                <Select
+                                                    value={sectionSettingsForm.data.task_submission}
+                                                    onValueChange={(value) => sectionSettingsForm.setData(
+                                                        'task_submission',
+                                                        value as Section['task_submission'],
+                                                    )}
+                                                >
+                                                    <SelectTrigger className="h-9 text-sm">
+                                                        <SelectValue />
+                                                    </SelectTrigger>
+                                                    <SelectContent>
+                                                        <SelectItem value="none">Keine Abgabe</SelectItem>
+                                                        <SelectItem value="file">Datei</SelectItem>
+                                                        <SelectItem value="text">Text</SelectItem>
+                                                        <SelectItem value="both">Datei oder Text</SelectItem>
+                                                    </SelectContent>
+                                                </Select>
+                                            </div>
+                                        )}
+
+                                        <p className="text-xs text-muted-foreground">
+                                            {!sectionSettingsForm.data.task_submission
+                                                ? 'In Moodle: eine Textseite, im Kapitel-Buch ein Buchkapitel.'
+                                                : `In Moodle: eine Aufgabe${{
+                                                    none: ' ohne Abgabe',
+                                                    file: ', Abgabe als Datei',
+                                                    text: ', Abgabe als Text',
+                                                    both: ', Abgabe als Datei oder Text',
+                                                }[sectionSettingsForm.data.task_submission]}. Bewertet wird in Moodle.`}
+                                        </p>
 
                                         {sectionSettingsForm.isDirty && (
                                             <Button
