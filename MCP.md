@@ -78,6 +78,8 @@ entfernt hat. Vorher lesen, danach mit `add-interactive-block` neu setzen.
 - Die Signaturschlüssel liegen unter `storage/oauth-*.key` und sind über
   `/storage/*.key` gitignored. Auf einem neuen Server einmal
   `php artisan passport:keys` ausführen.
+  Passport nimmt sie nur mit den Rechten 600/660 an, sonst antworten `/mcp`
+  und `/oauth/authorize` mit 500 – der Deploy setzt die Rechte jedes Mal neu.
 
 ## Lokal testen (ohne claude.ai)
 

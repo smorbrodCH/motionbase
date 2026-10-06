@@ -85,6 +85,10 @@ jobs:
               openssl rsa -in storage/lti/private.pem -pubout -out storage/lti/public.pem
               chmod 600 storage/lti/private.pem
             }
+            # chmod -R oben macht die Schlüssel 770. Passport lässt nur 600/660 gelten und
+            # antwortet sonst auf /mcp und /oauth/authorize mit 500; der LTI-Schlüssel bleibt so eng wie angelegt.
+            chmod 600 storage/oauth-private.key storage/lti/private.pem
+            chmod 660 storage/oauth-public.key
             /usr/local/php83/bin/php artisan storage:link
             # Erst den alten Cache weg, sonst migriert Laravel mit veralteten .env-Werten.
             /usr/local/php83/bin/php artisan config:clear
