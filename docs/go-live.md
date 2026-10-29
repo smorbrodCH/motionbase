@@ -89,7 +89,7 @@ des Mailservers eintragen.
 
 ## 5. GitHub-Secrets
 
-GitHub → Repository **motionbase/motionbase** → **Settings → Secrets and variables → Actions**. Drei Secrets,
+GitHub → Repository **smorbrodCH/motionbase** → **Settings → Secrets and variables → Actions**. Drei Secrets,
 Name exakt so – die bisherigen Werte gehören zu Metanet und müssen **ersetzt** werden:
 
 | Secret     | Wert                                      |
