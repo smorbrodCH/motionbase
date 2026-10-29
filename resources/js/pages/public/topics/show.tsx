@@ -6,7 +6,9 @@ import { Head, Link, router } from '@inertiajs/react';
 import type { OutputBlockData } from '@editorjs/editorjs';
 import { createElement, type ReactNode, useEffect, useMemo, useRef, useState, useCallback } from 'react';
 import { cn } from '@/lib/utils';
-import { ChevronDown, ChevronRight, ClipboardList, List, CheckCircle2, XCircle, ArrowRight } from 'lucide-react';
+import { ChevronDown, ChevronLeft, ChevronRight, ClipboardList, List, CheckCircle2, XCircle, ArrowLeft, ArrowRight } from 'lucide-react';
+import { CourseOutline } from '@/components/course-outline';
+import { Sheet, SheetContent, SheetHeader, SheetTitle, SheetTrigger } from '@/components/ui/sheet';
 import { TopicChat } from '@/components/topic-chat';
 import Prism from 'prismjs';
 import 'prismjs/components/prism-javascript';
@@ -35,6 +37,9 @@ export default function PublicTopicShow({ topic }: PublicTopicShowProps) {
 
     // Track expanded chapters
     const [isTocOpen, setIsTocOpen] = useState(false);
+    // Auf dem Handy liegt das Kursinhaltsverzeichnis in einem Blatt von unten,
+    // sonst müsste man sich bei langen Kursen erst daran vorbeiscrollen.
+    const [isOutlineOpen, setIsOutlineOpen] = useState(false);
     const [expandedChapters, setExpandedChapters] = useState<Set<number>>(() => {
         // Initially expand all chapters, or at least the one containing the active section
         return new Set(topic.chapters.map((ch) => ch.id));
@@ -116,11 +121,22 @@ export default function PublicTopicShow({ topic }: PublicTopicShowProps) {
     );
 
     const navigateToSection = (chapterSlug: string, sectionSlug: string) => {
+        setIsOutlineOpen(false);
         router.visit(`/themen/${topic.slug}/${chapterSlug}/${sectionSlug}`, {
             preserveScroll: true,
             preserveState: true,
         });
     };
+
+    // Alle Lektionen in ihrer Reihenfolge - daraus ergeben sich «Zurück» und
+    // «Weiter» und die Position im Kurs.
+    const flatSections = useMemo(
+        () => topic.chapters.flatMap((chapter) => chapter.sections.map((section) => ({ chapter, section }))),
+        [topic.chapters],
+    );
+    const currentIndex = flatSections.findIndex(({ section }) => section.id === activeSection?.id);
+    const previous = currentIndex > 0 ? flatSections[currentIndex - 1] : null;
+    const next = currentIndex >= 0 && currentIndex < flatSections.length - 1 ? flatSections[currentIndex + 1] : null;
 
     // Find the current chapter for the active section
     const currentChapter = topic.chapters.find((ch) =>
@@ -136,7 +152,9 @@ export default function PublicTopicShow({ topic }: PublicTopicShowProps) {
                 <div
                     className="grid lg:grid-cols-[320px_minmax(0,1fr)]"
                 >
-                    <aside className="border-b border-zinc-100 px-4 py-6 lg:border-b-0 lg:border-r lg:px-6 lg:py-8 flex flex-col gap-6 lg:sticky lg:top-16 lg:max-h-[calc(100vh-128px)] lg:overflow-y-auto lg:bg-white">
+                    {/* Seitenleiste nur am Desktop: auf dem Handy steht das
+                        Verzeichnis in der Leiste unter dem Kopf. */}
+                    <aside className="hidden lg:flex border-b border-zinc-100 px-4 py-6 lg:border-b-0 lg:border-r lg:px-6 lg:py-8 flex-col gap-6 lg:sticky lg:top-16 lg:max-h-[calc(100vh-128px)] lg:overflow-y-auto lg:bg-white">
                         <div className="space-y-1.5 border-b border-zinc-100 pb-6 -mx-4 lg:-mx-6 px-4 lg:px-6">
                             <p className="text-base font-semibold text-zinc-900 leading-snug mb-0">
                                 {topic.title}
@@ -151,77 +169,76 @@ export default function PublicTopicShow({ topic }: PublicTopicShowProps) {
                             </h3>
                         </div>
 
-                        {/* Chapters and Sections */}
-                        <div className="space-y-3">
-                            {topic.chapters.map((chapter, chapterIndex) => {
-                                const isExpanded = expandedChapters.has(chapter.id);
-                                const hasActiveSectionInChapter = chapter.sections.some(
-                                    (s) => s.id === activeSection?.id
-                                );
-
-                                return (
-                                    <div key={chapter.id} className="space-y-1">
-                                        {/* Chapter Header */}
-                                        <button
-                                            type="button"
-                                            onClick={() => toggleChapter(chapter.id)}
-                                            className={cn(
-                                                'flex w-full items-center gap-2 rounded-lg px-3 py-2 text-left transition-colors',
-                                                hasActiveSectionInChapter
-                                                    ? 'bg-zinc-100 text-zinc-900'
-                                                    : 'text-zinc-600 hover:bg-zinc-50'
-                                            )}
-                                        >
-                                            {isExpanded ? (
-                                                <ChevronDown className="h-4 w-4 shrink-0 text-zinc-400" />
-                                            ) : (
-                                                <ChevronRight className="h-4 w-4 shrink-0 text-zinc-400" />
-                                            )}
-                                            <span className="text-sm font-semibold truncate">
-                                                {chapterIndex + 1}. {chapter.title}
-                                            </span>
-                                        </button>
-
-                                        {/* Sections */}
-                                        {isExpanded && (
-                                            <div className="ml-3 space-y-1 border-l border-zinc-100 pl-3">
-                                                {chapter.sections.map((section, sectionIndex) => {
-                                                    const isActive = section.id === activeSection?.id;
-                                                    return (
-                                                        <button
-                                                            key={section.id}
-                                                            type="button"
-                                                            onClick={() => navigateToSection(chapter.slug, section.slug)}
-                                                            className={cn(
-                                                                'group flex w-full items-center gap-3 rounded-lg px-3 py-2 text-sm font-medium transition-all',
-                                                                isActive
-                                                                    ? 'bg-zinc-900 text-white'
-                                                                    : 'text-zinc-500 hover:bg-white hover:text-zinc-900'
-                                                            )}
-                                                        >
-                                                            <span
-                                                                className={cn(
-                                                                    'flex h-5 w-5 shrink-0 items-center justify-center rounded-full text-[10px] font-bold transition-colors',
-                                                                    isActive
-                                                                        ? 'bg-white/20 text-white'
-                                                                        : 'bg-white text-zinc-400 group-hover:text-zinc-700'
-                                                                )}
-                                                            >
-                                                                {sectionIndex + 1}
-                                                            </span>
-                                                            <span className="truncate text-left">
-                                                                {section.title}
-                                                            </span>
-                                                        </button>
-                                                    );
-                                                })}
-                                            </div>
-                                        )}
-                                    </div>
-                                );
-                            })}
-                        </div>
+                        <CourseOutline
+                            chapters={topic.chapters}
+                            activeSectionId={activeSection?.id}
+                            expandedChapters={expandedChapters}
+                            onToggleChapter={toggleChapter}
+                            onNavigate={navigateToSection}
+                        />
                     </aside>
+
+                    {/* Handy: eine Leiste statt der langen Liste. Verzeichnis
+                        aufklappen, blättern, und man sieht, wo man steht. */}
+                    <div className="sticky top-16 z-30 flex items-center gap-2 border-b border-zinc-100 bg-white/95 px-4 py-2 backdrop-blur-sm lg:hidden">
+                        <Sheet open={isOutlineOpen} onOpenChange={setIsOutlineOpen}>
+                            <SheetTrigger asChild>
+                                <button
+                                    type="button"
+                                    className="flex min-w-0 flex-1 items-center gap-2 rounded-lg px-2 py-1.5 text-left hover:bg-zinc-50"
+                                >
+                                    <List className="h-4 w-4 shrink-0 text-zinc-400" />
+                                    <span className="min-w-0 flex-1">
+                                        <span className="block truncate text-sm font-semibold text-zinc-900">
+                                            {activeSection?.title ?? topic.title}
+                                        </span>
+                                        <span className="block truncate text-xs text-zinc-400">
+                                            {currentChapter?.title ?? 'Kursinhalt'}
+                                            {currentIndex >= 0 && ` · ${currentIndex + 1} von ${flatSections.length}`}
+                                        </span>
+                                    </span>
+                                    <ChevronDown className="h-4 w-4 shrink-0 text-zinc-400" />
+                                </button>
+                            </SheetTrigger>
+                            <SheetContent side="bottom" className="max-h-[85vh] overflow-y-auto rounded-t-2xl">
+                                <SheetHeader className="pb-2">
+                                    <SheetTitle className="flex items-center gap-2 text-base">
+                                        <List className="h-4 w-4 text-zinc-400" /> Kursinhalt
+                                    </SheetTitle>
+                                    <p className="text-sm text-zinc-500">{topic.title}</p>
+                                </SheetHeader>
+                                <CourseOutline
+                                    chapters={topic.chapters}
+                                    activeSectionId={activeSection?.id}
+                                    expandedChapters={expandedChapters}
+                                    onToggleChapter={toggleChapter}
+                                    onNavigate={navigateToSection}
+                                    className="px-4 pb-8"
+                                />
+                            </SheetContent>
+                        </Sheet>
+
+                        <div className="flex shrink-0 items-center gap-1">
+                            <button
+                                type="button"
+                                disabled={!previous}
+                                onClick={() => previous && navigateToSection(previous.chapter.slug, previous.section.slug)}
+                                aria-label="Vorherige Lektion"
+                                className="flex h-9 w-9 items-center justify-center rounded-lg border border-zinc-200 text-zinc-600 disabled:opacity-30"
+                            >
+                                <ChevronLeft className="h-4 w-4" />
+                            </button>
+                            <button
+                                type="button"
+                                disabled={!next}
+                                onClick={() => next && navigateToSection(next.chapter.slug, next.section.slug)}
+                                aria-label="Nächste Lektion"
+                                className="flex h-9 w-9 items-center justify-center rounded-lg border border-zinc-200 text-zinc-600 disabled:opacity-30"
+                            >
+                                <ChevronRight className="h-4 w-4" />
+                            </button>
+                        </div>
+                    </div>
 
                     <section
                         ref={contentRef}
@@ -319,6 +336,44 @@ export default function PublicTopicShow({ topic }: PublicTopicShowProps) {
                         <div className="prose max-w-none prose-headings:font-bold prose-headings:tracking-tight prose-headings:text-zinc-900 prose-p:text-zinc-600 prose-p:leading-relaxed prose-li:text-zinc-600 prose-strong:text-zinc-900">
                             {renderBlocks(activeSection?.content?.blocks ?? [])}
                         </div>
+
+                        {/* Am Ende weiterlesen, ohne zurück ins Verzeichnis. */}
+                        {(previous || next) && (
+                            <nav className="mt-12 grid gap-3 border-t border-zinc-100 pt-6 sm:grid-cols-2">
+                                {previous ? (
+                                    <button
+                                        type="button"
+                                        onClick={() => navigateToSection(previous.chapter.slug, previous.section.slug)}
+                                        className="group flex items-center gap-3 rounded-xl border border-zinc-200 px-4 py-3 text-left transition-colors hover:border-zinc-300 hover:bg-zinc-50"
+                                    >
+                                        <ArrowLeft className="h-4 w-4 shrink-0 text-zinc-400" />
+                                        <span className="min-w-0">
+                                            <span className="block text-xs text-zinc-400">Zurück</span>
+                                            <span className="block truncate text-sm font-medium text-zinc-900">
+                                                {previous.section.title}
+                                            </span>
+                                        </span>
+                                    </button>
+                                ) : (
+                                    <span className="hidden sm:block" />
+                                )}
+                                {next && (
+                                    <button
+                                        type="button"
+                                        onClick={() => navigateToSection(next.chapter.slug, next.section.slug)}
+                                        className="group flex items-center justify-end gap-3 rounded-xl border border-zinc-200 px-4 py-3 text-right transition-colors hover:border-zinc-300 hover:bg-zinc-50"
+                                    >
+                                        <span className="min-w-0">
+                                            <span className="block text-xs text-zinc-400">Weiter</span>
+                                            <span className="block truncate text-sm font-medium text-zinc-900">
+                                                {next.section.title}
+                                            </span>
+                                        </span>
+                                        <ArrowRight className="h-4 w-4 shrink-0 text-zinc-400" />
+                                    </button>
+                                )}
+                            </nav>
+                        )}
                     </section>
 
                 </div>
