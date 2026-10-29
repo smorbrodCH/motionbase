@@ -151,7 +151,7 @@ export default function PublicTopicShow({ topic }: PublicTopicShowProps) {
 
             <div className="relative bg-white lg:min-h-[calc(100vh-128px)] lg:overflow-hidden">
                 <div
-                    className="grid lg:grid-cols-[320px_minmax(0,1fr)]"
+                    className="grid grid-cols-[minmax(0,1fr)] lg:grid-cols-[320px_minmax(0,1fr)]"
                 >
                     {/* Seitenleiste nur am Desktop: auf dem Handy steht das
                         Verzeichnis in der Leiste unter dem Kopf. */}
@@ -243,7 +243,7 @@ export default function PublicTopicShow({ topic }: PublicTopicShowProps) {
 
                     <section
                         ref={contentRef}
-                        className="px-4 py-8 sm:px-8 lg:px-12 lg:py-10 lg:max-h-[calc(100vh-128px)] lg:overflow-y-auto"
+                        className="min-w-0 px-4 py-8 sm:px-8 lg:px-12 lg:py-10 lg:max-h-[calc(100vh-128px)] lg:overflow-y-auto"
                     >
                         <header className="pb-6 space-y-3">
                             <div className="flex items-center gap-2 text-xs font-medium text-[#ff0055] uppercase tracking-wider">
@@ -334,7 +334,7 @@ export default function PublicTopicShow({ topic }: PublicTopicShowProps) {
                             </nav>
                         )}
 
-                        <div className="prose max-w-none prose-headings:font-bold prose-headings:tracking-tight prose-headings:text-zinc-900 prose-p:text-zinc-600 prose-p:leading-relaxed prose-li:text-zinc-600 prose-strong:text-zinc-900">
+                        <div className="prose max-w-none break-words prose-headings:font-bold prose-headings:tracking-tight prose-headings:text-zinc-900 prose-p:text-zinc-600 prose-p:leading-relaxed prose-li:text-zinc-600 prose-strong:text-zinc-900">
                             {renderBlocks(activeSection?.content?.blocks ?? [])}
                         </div>
 
