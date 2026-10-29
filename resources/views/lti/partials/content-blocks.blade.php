@@ -161,6 +161,8 @@
                 $height = max(120, min(5000, $height > 0 ? $height : 480));
 
                 $safeUrl = htmlspecialchars($url, ENT_QUOTES, 'UTF-8');
+                // Seiten von eifach.online behalten ihre eigene Herkunft, eigene Uploads nicht
+                $sandbox = \App\Services\InteractiveEmbed::sandbox($url);
                 $safeCaption = htmlspecialchars($caption, ENT_QUOTES, 'UTF-8');
                 $title = $safeCaption !== '' ? $safeCaption : 'Interaktive Grafik';
 
@@ -168,7 +170,7 @@
                 $html .= "<div class=\"overflow-hidden rounded-2xl border border-zinc-200 bg-zinc-50\">";
                 // No allow-same-origin: the graphic runs on an opaque origin and
                 // cannot reach the app's cookies or localStorage.
-                $html .= "<iframe src=\"{$safeUrl}\" class=\"interactive-frame block w-full border-0\" style=\"height: {$height}px\" sandbox=\"allow-scripts\" loading=\"lazy\" title=\"{$title}\"></iframe>";
+                $html .= "<iframe src=\"{$safeUrl}\" class=\"interactive-frame block w-full border-0\" style=\"height: {$height}px\" sandbox=\"{$sandbox}\" loading=\"lazy\" title=\"{$title}\"></iframe>";
                 $html .= "</div>";
                 if ($safeCaption !== '') {
                     $html .= "<figcaption class=\"mt-3 text-center text-sm text-zinc-500\">{$safeCaption}</figcaption>";

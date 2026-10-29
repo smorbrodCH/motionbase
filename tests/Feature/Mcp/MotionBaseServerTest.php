@@ -12,7 +12,6 @@ use App\Mcp\Tools\DeleteContent;
 use App\Mcp\Tools\ListMedia;
 use App\Mcp\Tools\MoveBlock;
 use App\Mcp\Tools\RemoveBlock;
-use App\Mcp\Tools\CreateInteractive;
 use App\Mcp\Tools\CreateSection;
 use App\Mcp\Tools\GetSection;
 use App\Mcp\Tools\GetTopic;
@@ -180,25 +179,6 @@ it('adds interactive blocks but refuses unsafe urls', function () {
         ->and($blocks[0]['data']['height'])->toBe(600);
 });
 
-it('stores interactive graphics off the public disk', function () {
-    Storage::fake('local');
-    Storage::fake('public');
-
-    $owner = User::factory()->create();
-
-    MotionBaseServer::actingAs($owner)
-        ->tool(CreateInteractive::class, [
-            'name' => 'Easing Simulator',
-            'html' => '<!DOCTYPE html><p>hi</p>',
-        ])->assertOk();
-
-    $media = Media::where('type', 'interactive')->firstOrFail();
-
-    expect(Storage::disk('local')->exists($media->path))->toBeTrue()
-        ->and(Storage::disk('public')->exists($media->path))->toBeFalse()
-        ->and($media->url)->toBe("/interactive/{$media->id}");
-});
-
 it('renders the consent screen instead of dying on an unbound view', function () {
     // Passport binds AuthorizationViewResponse only from inside
     // Passport::authorizationView(). Without that call every real client hits
@@ -301,96 +281,6 @@ it('tells the client which files a graphic was uploaded with', function () {
         ->assertOk()
         ->assertSee('diagramm.png')
         ->assertDontSee('"files"');
-});
-
-it('tells the client how a graphic gets its models', function () {
-    // The package only exposes the instructions through the server class, and
-    // most clients read tool descriptions rather than those - so both carry it.
-    MotionBaseServer::actingAs(User::factory()->create())
-        ->tool(ListBlockTypes::class)
-        ->assertOk()
-        ->assertSee('list_media type model')
-        ->assertSee('relative path');
-
-    expect((new CreateInteractive)->description())
-        ->toContain('models')
-        ->toContain('list_media')
-        ->toContain('Medien hochladen')
-        ->not->toContain('must be inline');
-});
-
-function mcpModel(string $name): Media
-{
-    $chunk = json_encode(['asset' => ['version' => '2.0']]);
-    $chunk .= str_repeat(' ', (4 - strlen($chunk) % 4) % 4);
-    $body = pack('V', strlen($chunk)).'JSON'.$chunk;
-    $bytes = 'glTF'.pack('V', 2).pack('V', 12 + strlen($body)).$body;
-
-    $path = 'models/'.Str::uuid().'.glb';
-    Storage::disk('local')->put($path, $bytes);
-
-    return Media::create([
-        'filename' => basename($path), 'original_filename' => $name, 'path' => $path, 'url' => '',
-        'mime_type' => 'model/gltf-binary', 'type' => 'model', 'size' => strlen($bytes),
-    ]);
-}
-
-it('builds a 3D graphic from a model in the media library', function () {
-    Storage::fake('local');
-
-    $owner = User::factory()->create();
-    $model = mcpModel('wuerfel.glb');
-
-    MotionBaseServer::actingAs($owner)->tool(ListMedia::class, ['type' => 'model'])
-        ->assertOk()->assertSee('wuerfel.glb');
-
-    MotionBaseServer::actingAs($owner)->tool(CreateInteractive::class, [
-        'name' => 'Würfel',
-        'html' => '<!DOCTYPE html><script>loader.load("wuerfel.glb")</script>',
-        'models' => [$model->id],
-    ])->assertOk()->assertSee('"files":["wuerfel.glb"]');
-
-    $graphic = Media::where('type', 'interactive')->firstOrFail();
-
-    expect($graphic->url)->toBe("/interactive/{$graphic->id}/index.html");
-
-    // The graphic loads its copy through the sandboxed file route.
-    $served = $this->get("/interactive/{$graphic->id}/wuerfel.glb")->assertOk();
-
-    expect($served->headers->get('Content-Type'))->toBe('model/gltf-binary')
-        ->and($served->headers->get('Access-Control-Allow-Origin'))->toBe('*')
-        ->and(file_get_contents($served->baseResponse->getFile()->getPathname()))
-        ->toBe(Storage::disk('local')->get($model->path));
-
-    // A copy, not a reference: deleting the library model leaves the graphic whole.
-    Storage::disk('local')->delete($model->path);
-    $model->delete();
-
-    $this->get("/interactive/{$graphic->id}/wuerfel.glb")->assertOk();
-});
-
-it('refuses models that are not models in the media library', function () {
-    Storage::fake('local');
-
-    $owner = User::factory()->create();
-    $image = Media::create([
-        'filename' => 'x.png', 'original_filename' => 'x.png', 'path' => 'editor-images/x.png',
-        'url' => '/storage/editor-images/x.png', 'mime_type' => 'image/png', 'type' => 'image', 'size' => 10,
-    ]);
-
-    foreach ([[$image->id], [999999]] as $models) {
-        MotionBaseServer::actingAs($owner)->tool(CreateInteractive::class, [
-            'name' => 'Würfel', 'html' => '<!DOCTYPE html>', 'models' => $models,
-        ])->assertHasErrors();
-    }
-
-    // Two models by one name could not be told apart inside the graphic.
-    MotionBaseServer::actingAs($owner)->tool(CreateInteractive::class, [
-        'name' => 'Würfel', 'html' => '<!DOCTYPE html>',
-        'models' => [mcpModel('wuerfel.glb')->id, mcpModel('Wuerfel.glb')->id],
-    ])->assertHasErrors();
-
-    expect(Media::where('type', 'interactive')->count())->toBe(0);
 });
 
 it('exposes the block vocabulary as a callable tool', function () {

@@ -7,7 +7,8 @@
         window.addEventListener('message', function (event) {
             var payload = event.data;
 
-            if (!payload || payload.type !== 'motionbase:resize') {
+            // Eigene Grafiken melden motionbase:resize, Seiten von eifach.online eifach:resize
+            if (!payload || (payload.type !== 'motionbase:resize' && payload.type !== 'eifach:resize')) {
                 return;
             }
 

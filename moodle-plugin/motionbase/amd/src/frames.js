@@ -2,7 +2,8 @@
 
 /**
  * Sizes embedded MotionBase graphics to their content. Each graphic reports
- * its height as {type: 'motionbase:resize', height}; without this the frame
+ * its height as {type: 'motionbase:resize'} or, on eifach.online, {type: 'eifach:resize'};
+ * without this the frame
  * keeps the author's height and scrolls inside.
  *
  * @module     filter_motionbase/frames
@@ -21,7 +22,8 @@ export const init = () => {
 
     window.addEventListener('message', event => {
         const payload = event.data;
-        if (!payload || payload.type !== 'motionbase:resize') {
+        // Eigene Grafiken melden motionbase:resize, Seiten von eifach.online eifach:resize
+        if (!payload || (payload.type !== 'motionbase:resize' && payload.type !== 'eifach:resize')) {
             return;
         }
 

@@ -8,6 +8,7 @@ import { createElement, type ReactNode, useEffect, useMemo, useRef, useState, us
 import { cn } from '@/lib/utils';
 import { ChevronDown, ChevronLeft, ChevronRight, ClipboardList, List, CheckCircle2, XCircle, ArrowLeft, ArrowRight } from 'lucide-react';
 import { CourseOutline } from '@/components/course-outline';
+import { sandboxFor } from '@/lib/interactive';
 import { Sheet, SheetContent, SheetHeader, SheetTitle, SheetTrigger } from '@/components/ui/sheet';
 import { TopicChat } from '@/components/topic-chat';
 import Prism from 'prismjs';
@@ -1125,7 +1126,8 @@ function InteractiveRenderer({
             }
 
             const payload = event.data;
-            if (!payload || payload.type !== 'motionbase:resize') {
+            // Eigene Grafiken melden motionbase:resize, Seiten von eifach.online eifach:resize
+            if (!payload || (payload.type !== 'motionbase:resize' && payload.type !== 'eifach:resize')) {
                 return;
             }
 
@@ -1143,9 +1145,7 @@ function InteractiveRenderer({
                 <iframe
                     ref={iframeRef}
                     src={url}
-                    // No allow-same-origin: the graphic runs on an opaque origin
-                    // and cannot reach the app's cookies or localStorage.
-                    sandbox="allow-scripts"
+                    sandbox={sandboxFor(url)}
                     loading="lazy"
                     title={caption || 'Interaktive Grafik'}
                     className="block w-full border-0 transition-[height] duration-200"

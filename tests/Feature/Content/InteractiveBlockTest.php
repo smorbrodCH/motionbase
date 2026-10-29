@@ -1,13 +1,10 @@
 <?php
 
 use App\Models\Media;
-use App\Models\User;
-use Illuminate\Http\UploadedFile;
 use Illuminate\Support\Facades\Storage;
+use Illuminate\Support\Str;
 
-use function Pest\Laravel\actingAs;
 use function Pest\Laravel\get;
-use function Pest\Laravel\post;
 
 uses(Illuminate\Foundation\Testing\RefreshDatabase::class);
 
@@ -16,36 +13,37 @@ beforeEach(function () {
     Storage::fake('public');
 });
 
-function uploadGraphic(string $name = 'graphic.html', string $body = '<!DOCTYPE html><p>hi</p>')
+/**
+ * Eine Grafik, wie sie vor dem Umzug nach eifach.online angelegt wurde. Neue
+ * entstehen dort; diese hier werden weiter ausgeliefert.
+ */
+function storedGraphic(string $body = '<!DOCTYPE html><p>hi</p>'): Media
 {
-    $path = tempnam(sys_get_temp_dir(), 'interactive');
-    file_put_contents($path, $body);
+    $filename = Str::uuid().'.html';
+    Storage::disk('local')->put("interactive/{$filename}", $body);
 
-    return actingAs(User::factory()->create())
-        ->post('/admin/upload/interactive', [
-            'interactive' => new UploadedFile($path, $name, null, null, true),
-        ]);
+    return Media::create([
+        'filename' => $filename,
+        'original_filename' => 'graphic.html',
+        'path' => "interactive/{$filename}",
+        'url' => '',
+        'mime_type' => 'text/html',
+        'type' => 'interactive',
+        'size' => strlen($body),
+    ]);
 }
 
-it('keeps uploaded graphics off the web served public disk', function () {
-    $response = uploadGraphic();
+it('keeps graphics off the web served public disk', function () {
+    $media = storedGraphic();
 
-    $response->assertOk()->assertJsonPath('success', 1);
-
-    $media = Media::firstOrFail();
-
-    expect($media->type)->toBe('interactive')
-        ->and(Storage::disk('local')->exists($media->path))->toBeTrue()
-        // The public disk is served directly by the web server, which would
-        // hand out the graphic on our own origin without any CSP.
+    // The public disk is served directly by the web server, which would
+    // hand out the graphic on our own origin without any CSP.
+    expect(Storage::disk('local')->exists($media->path))->toBeTrue()
         ->and(Storage::disk('public')->exists($media->path))->toBeFalse();
-
-    expect($response->json('file.url'))->toBe("/interactive/{$media->id}");
 });
 
 it('serves graphics on an opaque origin', function () {
-    uploadGraphic();
-    $media = Media::firstOrFail();
+    $media = storedGraphic();
 
     $response = get("/interactive/{$media->id}");
 
@@ -59,8 +57,7 @@ it('serves graphics on an opaque origin', function () {
 });
 
 it('revalidates instead of caching blind, so a replaced graphic shows up', function () {
-    uploadGraphic();
-    $media = Media::firstOrFail();
+    $media = storedGraphic();
 
     $first = get("/interactive/{$media->id}")->assertOk();
     $etag = $first->headers->get('ETag');
@@ -81,29 +78,9 @@ it('revalidates instead of caching blind, so a replaced graphic shows up', funct
 });
 
 it('serves graphics to guests so embeds keep working', function () {
-    uploadGraphic();
-    $media = Media::firstOrFail();
+    $media = storedGraphic();
 
     get("/interactive/{$media->id}")->assertOk();
-});
-
-it('refuses non-html uploads', function () {
-    uploadGraphic('graphic.svg')
-        ->assertStatus(422)
-        ->assertJsonPath('success', 0);
-
-    expect(Media::count())->toBe(0);
-});
-
-it('requires authentication to upload', function () {
-    $path = tempnam(sys_get_temp_dir(), 'interactive');
-    file_put_contents($path, '<!DOCTYPE html><p>hi</p>');
-
-    post('/admin/upload/interactive', [
-        'interactive' => new UploadedFile($path, 'graphic.html', null, null, true),
-    ])->assertRedirect('/login');
-
-    expect(Media::count())->toBe(0);
 });
 
 it('does not serve media of other types through the interactive route', function () {

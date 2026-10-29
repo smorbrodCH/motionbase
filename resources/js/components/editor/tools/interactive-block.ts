@@ -5,6 +5,7 @@ import type {
     BlockToolConstructorOptions,
     BlockToolData,
 } from '@editorjs/editorjs';
+import { sandboxFor } from '@/lib/interactive';
 
 interface InteractiveBlockData extends BlockToolData {
     url?: string;
@@ -91,49 +92,21 @@ export default class InteractiveBlock implements BlockTool {
         `;
         inputWrapper.appendChild(icon);
 
-        // File upload button
-        const uploadBtn = document.createElement('button');
-        uploadBtn.type = 'button';
-        uploadBtn.className = 'interactive-block__upload-btn';
-        uploadBtn.innerHTML = `
-            <svg viewBox="0 0 24 24" width="18" height="18" fill="none">
-                <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/>
-                <polyline points="17,8 12,3 7,8" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/>
-                <line x1="12" y1="3" x2="12" y2="15" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/>
-            </svg>
-            HTML-Datei hochladen
-        `;
-        uploadBtn.disabled = this.readOnly;
-
-        const fileInput = document.createElement('input');
-        fileInput.type = 'file';
-        // The HTML document, optionally with the models and textures it loads
-        fileInput.accept = '.html,.htm,.glb,.gltf,.bin,.png,.jpg,.jpeg,.webp';
-        fileInput.multiple = true;
-        fileInput.style.display = 'none';
-        fileInput.addEventListener('change', async (e) => {
-            const target = e.target as HTMLInputElement;
-            const files = Array.from(target.files ?? []);
-            if (files.length > 0) {
-                await this.uploadFiles(files);
-            }
-        });
-
-        uploadBtn.addEventListener('click', () => fileInput.click());
-        inputWrapper.appendChild(uploadBtn);
-        inputWrapper.appendChild(fileInput);
-
-        // Divider
-        const divider = document.createElement('div');
-        divider.className = 'interactive-block__divider';
-        divider.innerHTML = '<span>oder</span>';
-        inputWrapper.appendChild(divider);
+        // Erstellt und verwaltet werden interaktive Elemente auf eifach.online:
+        // dort gibt es Versionen, Dateien und das Design der Schule. MotionBase
+        // bettet sie nur ein.
+        const hint = document.createElement('p');
+        hint.className = 'interactive-block__hint';
+        hint.innerHTML =
+            'Interaktive Elemente entstehen auf <a href="https://eifach.online" target="_blank" rel="noopener">eifach.online</a>. ' +
+            'Dort die Seite bauen und hier ihre Adresse einfügen.';
+        inputWrapper.appendChild(hint);
 
         // URL input
         const input = document.createElement('input');
         input.type = 'text';
         input.className = 'interactive-block__input';
-        input.placeholder = this.config.placeholder ?? 'URL der interaktiven Grafik einfügen…';
+        input.placeholder = this.config.placeholder ?? 'https://…eifach.online/meine-seite/';
         input.value = this.data.url ?? '';
         input.disabled = this.readOnly;
 
@@ -158,111 +131,10 @@ export default class InteractiveBlock implements BlockTool {
 
         inputWrapper.appendChild(input);
 
-        const hint = document.createElement('p');
-        hint.className = 'interactive-block__hint';
-        hint.textContent = 'HTML-Datei, optional mit 3D-Modellen und Texturen – läuft isoliert in einer Sandbox';
-        inputWrapper.appendChild(hint);
-
         this.wrapper.appendChild(inputWrapper);
     }
 
     // Mirrors InteractiveAssets on the server. Checked here as well because
-    // PHP drops every file past max_file_uploads without an error, and a
-    // request past post_max_size arrives empty - either would otherwise
-    // surface as a baffling upload failure.
-    private static readonly MAX_ASSETS = 19;
-    private static readonly MAX_ASSET_BYTES = 25 * 1024 * 1024;
-    private static readonly MAX_TOTAL_ASSET_BYTES = 60 * 1024 * 1024;
-
-    private async uploadFiles(files: File[]): Promise<void> {
-        const isDocument = (file: File) => /\.html?$/i.test(file.name);
-        const documents = files.filter(isDocument);
-        const assets = files.filter((file) => !isDocument(file));
-
-        if (documents.length !== 1) {
-            alert(documents.length === 0
-                ? 'Bitte die HTML-Datei mit auswählen – die anderen Dateien werden zusammen mit ihr hochgeladen.'
-                : 'Bitte genau eine HTML-Datei auswählen. Jede Grafik braucht einen eigenen Block.');
-            return;
-        }
-
-        if (assets.length > InteractiveBlock.MAX_ASSETS) {
-            alert(`Höchstens ${InteractiveBlock.MAX_ASSETS} Dateien pro Grafik.`);
-            return;
-        }
-
-        const tooLarge = assets.find((file) => file.size > InteractiveBlock.MAX_ASSET_BYTES);
-        if (tooLarge) {
-            alert(`„${tooLarge.name}“ ist größer als 25 MB.`);
-            return;
-        }
-
-        if (assets.reduce((total, file) => total + file.size, 0) > InteractiveBlock.MAX_TOTAL_ASSET_BYTES) {
-            alert('Die Dateien sind zusammen größer als 60 MB.');
-            return;
-        }
-
-        const formData = new FormData();
-        // The document first: should PHP ever cut the list short, it keeps it.
-        formData.append('interactive', documents[0]);
-        assets.forEach((file) => formData.append('assets[]', file));
-        formData.append('asset_count', String(assets.length));
-
-        const csrfToken = document.querySelector('meta[name="csrf-token"]')?.getAttribute('content') ?? '';
-
-        try {
-            // Show loading state
-            if (this.wrapper) {
-                this.wrapper.innerHTML = `
-                    <div class="interactive-block__loading">
-                        <div class="interactive-block__spinner"></div>
-                        <p>Wird hochgeladen…</p>
-                    </div>
-                `;
-            }
-
-            const response = await fetch('/admin/upload/interactive', {
-                method: 'POST',
-                headers: {
-                    'X-CSRF-TOKEN': csrfToken,
-                    'Accept': 'application/json',
-                },
-                body: formData,
-            });
-
-            if (!response.ok) {
-                const errorText = await response.text();
-                let message = errorText;
-                try {
-                    // The server explains what is wrong with which file
-                    message = JSON.parse(errorText).message ?? errorText;
-                } catch {
-                    // Not JSON - show it as it came
-                }
-                console.error('Interactive upload failed with status:', response.status, errorText);
-                alert(`Upload fehlgeschlagen (${response.status}): ${message || 'Unbekannter Fehler'}`);
-                this.renderInput();
-                return;
-            }
-
-            const result = await response.json();
-
-            if (result.success === 1) {
-                this.data.url = result.file.url;
-                this.renderPreview();
-                this.block?.dispatchChange();
-            } else {
-                console.error('Interactive upload failed:', result.message);
-                alert('Datei konnte nicht hochgeladen werden: ' + (result.message || 'Unbekannter Fehler'));
-                this.renderInput();
-            }
-        } catch (error) {
-            console.error('Interactive upload error:', error);
-            alert('Netzwerkfehler beim Hochladen der Datei. Bitte versuche es erneut.');
-            this.renderInput();
-        }
-    }
-
     private handleUrlChange(url: string) {
         const trimmed = url.trim();
 
@@ -289,9 +161,7 @@ export default class InteractiveBlock implements BlockTool {
         iframe.src = this.data.url;
         iframe.className = 'interactive-block__iframe';
         iframe.style.height = `${this.clampHeight(this.data.height)}px`;
-        // No allow-same-origin: the graphic runs on an opaque origin and
-        // cannot reach the app's cookies or localStorage.
-        iframe.setAttribute('sandbox', 'allow-scripts');
+        iframe.setAttribute('sandbox', sandboxFor(this.data.url));
         iframe.setAttribute('loading', 'lazy');
         iframe.setAttribute('title', this.data.caption || 'Interaktive Grafik');
 
@@ -405,7 +275,8 @@ export default class InteractiveBlock implements BlockTool {
             }
 
             const payload = event.data;
-            if (!payload || payload.type !== 'motionbase:resize') {
+            // Eigene Grafiken melden motionbase:resize, Seiten von eifach.online eifach:resize
+            if (!payload || (payload.type !== 'motionbase:resize' && payload.type !== 'eifach:resize')) {
                 return;
             }
 

@@ -157,7 +157,6 @@ Route::middleware(['auth', 'verified'])->prefix('admin')->group(function () {
     Route::post('upload/lottie', [LottieUploadController::class, 'upload'])->name('upload.lottie');
 
     // Interactive HTML graphic upload for Editor.js
-    Route::post('upload/interactive', [InteractiveController::class, 'upload'])->name('upload.interactive');
 
     // 3D models for the media library, placed into graphics by the MCP server
     Route::post('upload/model', [\App\Http\Controllers\ModelUploadController::class, 'upload'])->name('upload.model');

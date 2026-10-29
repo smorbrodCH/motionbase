@@ -22,29 +22,29 @@ class ListBlockTypes extends Tool
      */
     private const BLOCKS = [
         ['type' => 'header', 'created_by' => 'markdown', 'syntax' => "## Ebene 2\n### Ebene 3\n#### Ebene 4",
-         'notes' => 'Only levels 2-4 exist. Never repeat the section title as a heading; it is already rendered above the body. Subheadings fill the page table of contents.'],
+            'notes' => 'Only levels 2-4 exist. Never repeat the section title as a heading; it is already rendered above the body. Subheadings fill the page table of contents.'],
         ['type' => 'paragraph', 'created_by' => 'markdown', 'syntax' => 'Plain text with **bold**, *italic*, `code` and [links](https://example.com).',
-         'notes' => 'Blank line separates paragraphs.'],
+            'notes' => 'Blank line separates paragraphs.'],
         ['type' => 'list', 'created_by' => 'markdown', 'syntax' => "- unordered\n- second\n\n1. ordered\n2. second",
-         'notes' => 'Nesting is flattened to one level.'],
+            'notes' => 'Nesting is flattened to one level.'],
         ['type' => 'code', 'created_by' => 'markdown', 'syntax' => "```css\n.a { color: #ff0055; }\n```",
-         'notes' => 'Put the language directly after the opening fence.'],
+            'notes' => 'Put the language directly after the opening fence.'],
         ['type' => 'table', 'created_by' => 'markdown', 'syntax' => "| Kurve | Einsatz |\n| --- | --- |\n| Ease-Out | Menüs |",
-         'notes' => 'The first row is the header and the separator row is required. Cells accept **bold**, *italic* and `code`.'],
+            'notes' => 'The first row is the header and the separator row is required. Cells accept **bold**, *italic* and `code`.'],
 
-        ['type' => 'interactive', 'created_by' => 'tool', 'syntax' => 'create_interactive, then add_interactive_block',
-         'notes' => 'Self-contained HTML graphic, sandboxed on an opaque origin. See /design for the house style. For 3D: the user uploads a .glb under Medien in the web app, list_media type model finds it, create_interactive copies it in via models, and the graphic loads it by name as a relative path.'],
+        ['type' => 'interactive', 'created_by' => 'tool', 'syntax' => 'add_interactive_block',
+            'notes' => 'A page made on eifach.online, embedded by its address - MotionBase neither builds nor hosts interactive elements. eifach.online keeps their versions, files and the school\'s design, and such a page reports its height so the frame fits.'],
 
         ['type' => 'alert', 'created_by' => 'tool', 'syntax' => 'add_alert_block',
-         'notes' => 'Coloured callout: info, warning, danger or neutral. For something a reader must not miss, not for emphasis.'],
+            'notes' => 'Coloured callout: info, warning, danger or neutral. For something a reader must not miss, not for emphasis.'],
         ['type' => 'quiz', 'created_by' => 'tool', 'syntax' => 'add_quiz_block',
-         'notes' => 'Multiple choice, single answer. Exactly one option per question must be correct; answers are shuffled per learner, so never refer to their position. Each answer can carry an explanation shown when a learner picks it.'],
+            'notes' => 'Multiple choice, single answer. Exactly one option per question must be correct; answers are shuffled per learner, so never refer to their position. Each answer can carry an explanation shown when a learner picks it.'],
         ['type' => 'image', 'created_by' => 'tool', 'syntax' => 'list_media, then add_image_block',
-         'notes' => 'A picture already in the media library. Uploading happens in the web editor.'],
+            'notes' => 'A picture already in the media library. Uploading happens in the web editor.'],
         ['type' => 'youtube', 'created_by' => 'tool', 'syntax' => 'add_youtube_block',
-         'notes' => 'Takes a watch, share, embed or shorts URL, or a bare video id.'],
+            'notes' => 'Takes a watch, share, embed or shorts URL, or a bare video id.'],
         ['type' => 'lottie', 'created_by' => 'tool', 'syntax' => 'list_media, then add_lottie_block',
-         'notes' => 'A Lottie file already in the media library. Uploading happens in the web editor.'],
+            'notes' => 'A Lottie file already in the media library. Uploading happens in the web editor.'],
     ];
 
     public function handle(Request $request): Response

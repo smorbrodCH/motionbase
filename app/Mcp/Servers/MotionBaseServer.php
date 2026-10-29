@@ -13,7 +13,6 @@ use App\Mcp\Tools\RemoveBlock;
 use App\Mcp\Tools\AddInteractiveBlock;
 use App\Mcp\Tools\AddQuizBlock;
 use App\Mcp\Tools\CreateChapter;
-use App\Mcp\Tools\CreateInteractive;
 use App\Mcp\Tools\CreateSection;
 use App\Mcp\Tools\GetSection;
 use App\Mcp\Tools\GetTopic;
@@ -60,14 +59,13 @@ through create_section and update_section:
 
 The other six are placed by their own tool:
 
-  interactive   create_interactive stores the HTML, add_interactive_block
-                places it. See /design for the house style. For a 3D
-                graphic the user uploads the .glb in the web app (Medien,
-                "Medien hochladen"); list_media with type model finds it,
-                create_interactive takes its id in models and copies it in
-                beside the graphic, and the HTML loads it by its name as a
-                relative path, e.g. loader.load('wuerfel.glb'). Place the
-                graphic with the url create_interactive returns, as given.
+  interactive   add_interactive_block places a page that already exists -
+                MotionBase does not build or host interactive elements.
+                They are made on eifach.online, which keeps their versions,
+                files (images, 3D models, audio) and the school's design,
+                and they are embedded here by their address, e.g.
+                https://bzz.eifach.online/physik-pendel/. An eifach.online
+                page reports its height, so the frame fits by itself.
   quiz          add_quiz_block. Multiple choice, single answer, exactly one
                 option correct. Answers are shuffled per learner, so never
                 write one that refers to its own position.
@@ -133,7 +131,6 @@ class MotionBaseServer extends Server
         CreateChapter::class,
         CreateSection::class,
         UpdateSection::class,
-        CreateInteractive::class,
         AddInteractiveBlock::class,
         AddQuizBlock::class,
         AddAlertBlock::class,

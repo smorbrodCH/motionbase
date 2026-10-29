@@ -3,15 +3,10 @@
 namespace App\Http\Controllers;
 
 use App\Models\Media;
-use App\Services\InteractiveAssets;
-use App\Services\InteractiveGraphics;
-use Illuminate\Http\JsonResponse;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Illuminate\Http\Response;
-use Illuminate\Support\Facades\Log;
 use Illuminate\Support\Facades\Storage;
-use Illuminate\Validation\ValidationException;
 use Symfony\Component\HttpFoundation\BinaryFileResponse;
 
 class InteractiveController extends Controller
@@ -23,94 +18,6 @@ class InteractiveController extends Controller
      * disk - because it is attacker controlled markup as far as the browser is
      * concerned. It is handed out again only through show(), which pins it to
      * an opaque origin. Uploads are admin-only.
-     */
-    public function upload(Request $request, InteractiveAssets $assets, InteractiveGraphics $graphics): JsonResponse
-    {
-        try {
-            $request->validate([
-                'interactive' => 'required|file|max:5120', // 5MB max
-                'assets' => 'array|max:'.InteractiveAssets::MAX_FILES,
-                'assets.*' => 'file|max:'.InteractiveAssets::MAX_FILE_KB,
-                'asset_count' => 'nullable|integer|min:0',
-            ], [
-                'assets.max' => 'Höchstens '.InteractiveAssets::MAX_FILES.' Dateien pro Grafik.',
-                'assets.*.max' => 'Eine Datei ist größer als 25 MB.',
-                'assets.*.file' => 'Eine Datei ist nicht vollständig angekommen.',
-            ]);
-
-            $file = $request->file('interactive');
-
-            if (! $file) {
-                return response()->json([
-                    'success' => 0,
-                    'message' => 'No file uploaded',
-                ], 400);
-            }
-
-            $originalExtension = strtolower($file->getClientOriginalExtension());
-
-            // Only allow self-contained HTML documents
-            if (! in_array($originalExtension, ['html', 'htm'])) {
-                return response()->json([
-                    'success' => 0,
-                    'message' => 'Only .html files are allowed',
-                ], 422);
-            }
-
-            $files = $request->file('assets', []);
-
-            // PHP discards files past max_file_uploads without an error, so the
-            // editor says how many it sent. A shortfall means the graphic would
-            // go live missing parts of itself.
-            if ($request->filled('asset_count') && (int) $request->input('asset_count') !== count($files)) {
-                return response()->json([
-                    'success' => 0,
-                    'message' => 'Es sind nicht alle Dateien angekommen ('.count($files).' von '.(int) $request->input('asset_count').').',
-                ], 422);
-            }
-
-            // Every file is checked before the first one is stored.
-            $checked = $assets->check($files);
-
-            $media = $graphics->store($file, $file->getClientOriginalName(), array_map(fn (array $asset) => [
-                'name' => $asset['name'],
-                'extension' => $asset['extension'],
-                'mime' => $asset['mime'],
-                'size' => $asset['file']->getSize(),
-                'source' => $asset['file'],
-            ], $checked));
-
-            return response()->json([
-                'success' => 1,
-                'file' => [
-                    'url' => $media->url,
-                    'id' => $media->id,
-                    'assets' => array_column($checked, 'name'),
-                ],
-            ]);
-        } catch (ValidationException $e) {
-            return response()->json([
-                'success' => 0,
-                'message' => $e->getMessage(),
-            ], 422);
-        } catch (\Exception $e) {
-            Log::error('Interactive upload failed: ' . $e->getMessage());
-
-            return response()->json([
-                'success' => 0,
-                'message' => 'Upload failed: ' . $e->getMessage(),
-            ], 500);
-        }
-    }
-
-    /**
-     * Serve an interactive graphic.
-     *
-     * The `sandbox` CSP directive puts the document on an opaque origin for
-     * every way it can be reached - embedded in a course *and* opened directly
-     * by URL - so its scripts can never touch the app's cookies, storage or
-     * same-origin requests. The iframe sandbox attribute alone would only
-     * cover the embedded case.
      */
     public function show(Request $request, Media $media): Response|RedirectResponse
     {

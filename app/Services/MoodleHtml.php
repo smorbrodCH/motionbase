@@ -105,10 +105,11 @@ class MoodleHtml
 
         $height = min(max((int) ($data['height'] ?? 480), 120), 5000);
 
-        // The graphic keeps running on MotionBase, sandboxed there as well. It
-        // reports its height; the plugin's script sizes the frame to it.
+        // Die Grafik läuft weiter dort, wo sie liegt - auf MotionBase oder auf
+        // eifach.online. Sie meldet ihre Höhe; das Skript des Plugins stellt
+        // den Rahmen darauf ein.
         return '<figure class="mb-interactive"><iframe class="motionbase-frame" src="'.e($url).'" title="'.e($caption ?: 'Interaktive Grafik').'"'
-            .' sandbox="allow-scripts" loading="lazy" allowfullscreen'
+            .' sandbox="'.InteractiveEmbed::sandbox($url).'" loading="lazy" allowfullscreen'
             .' style="display: block; width: 100%; height: '.$height.'px; border: 0; border-radius: 0.5rem;"></iframe>'
             .($caption ? '<figcaption>'.e($caption).'</figcaption>' : '').'</figure>';
     }

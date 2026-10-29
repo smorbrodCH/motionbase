@@ -11,7 +11,7 @@
 defined('MOODLE_INTERNAL') || die();
 
 $plugin->component = 'filter_motionbase';
-$plugin->version = 2026100300;
+$plugin->version = 2026102900;
 $plugin->requires = 2024100700; // Moodle 4.5.
 $plugin->supported = [405, 502];
 $plugin->maturity = MATURITY_STABLE;

@@ -167,6 +167,23 @@ it('hands over any published lesson, with graphics embedded when asked', functio
         ->and($live)->not->toContain('mb-source');
 });
 
+it('lets an eifach.online page keep its own origin, but not an upload of ours', function () {
+    $app = rtrim(config('app.url'), '/');
+    $lesson = moodleTask(['task_submission' => null], [
+        ['type' => 'interactive', 'data' => ['url' => '/interactive/7', 'caption' => 'Eigene', 'height' => 400]],
+        ['type' => 'interactive', 'data' => ['url' => 'https://bzz.eifach.online/physik-pendel/', 'caption' => 'Pendel', 'height' => 400]],
+    ]);
+
+    $html = app(MoodleHtml::class)->render($lesson, embed: true);
+
+    // Eigene Uploads laufen auf einer undurchsichtigen Herkunft, sonst käme
+    // hochgeladenes HTML an Cookies und Speicher der App.
+    expect($html)->toContain('src="'.$app.'/interactive/7" title="Eigene" sandbox="allow-scripts"')
+        // Eine fremde Seite hat ihre Herkunft ohnehin; sie braucht sie für
+        // ihre eigene Datenbank und ihren Speicher.
+        ->and($html)->toContain('src="https://bzz.eifach.online/physik-pendel/" title="Pendel" sandbox="allow-scripts allow-same-origin');
+});
+
 it('hands over only published lessons', function () {
     $lesson = moodleTask(['is_published' => false]);
 
