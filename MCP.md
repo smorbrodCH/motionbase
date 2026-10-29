@@ -59,11 +59,14 @@ Sektionen speichern Editor.js-Blöcke. Die Tools übersetzen hin und zurück
 `##`/`###`/`####`, Absätze, `-` und `1.` Listen, ` ``` ` Codeblöcke, `**fett**`,
 `*kursiv*`, `` `code` ``, `[Links](url)`.
 
-**Nicht** über Markdown abbildbar sind interaktive Grafiken, Quizze, Bilder und
+**Nicht** über Markdown abbildbar sind interaktive Elemente, Quizze, Bilder und
 Alerts. Beim Lesen erscheinen sie als `> [...]`-Platzhalter und stehen zusätzlich
 unter `rich_blocks`. `update-section` mit `markdown` ersetzt den **ganzen** Body
 und wirft sie damit weg — das Tool meldet in `dropped_rich_blocks`, was es
 entfernt hat. Vorher lesen, danach mit `add-interactive-block` neu setzen.
+
+Interaktive Elemente baut MotionBase nicht selbst: Sie entstehen auf
+eifach.online und werden hier über ihre Adresse eingebettet.
 
 ## Sicherheit
 

@@ -60,7 +60,10 @@ class ExportInteractives extends Command
             $slug = $this->slug($media, $slugs);
             $slugs[] = $slug;
 
-            $disk->put("{$dir}/html/{$slug}.html", $this->withDesign($disk->get($media->path)));
+            $html = $disk->get($media->path);
+            $title = $this->title($media, $html, $sections);
+
+            $disk->put("{$dir}/html/{$slug}.html", $this->withDesign($html));
 
             $files = [];
             foreach ($media->assets as $asset) {
@@ -76,7 +79,7 @@ class ExportInteractives extends Command
 
             $pages[] = array_filter([
                 'slug' => $slug,
-                'title' => $this->title($media),
+                'title' => $title,
                 'file' => "html/{$slug}.html",
                 'files' => $files ?: null,
             ]);
@@ -84,7 +87,7 @@ class ExportInteractives extends Command
             $mapping[] = [
                 'media_id' => $media->id,
                 'slug' => $slug,
-                'title' => $this->title($media),
+                'title' => $title,
                 'sections' => $sections,
             ];
         }
@@ -142,8 +145,27 @@ class ExportInteractives extends Command
         return $slug;
     }
 
-    private function title(Media $media): string
+    /**
+     * Der Titel der Seite auf eifach.online: was die Grafik selbst im <title>
+     * trägt, sonst die Lektion, in der sie steckt. Der Dateiname kommt zuletzt,
+     * er hat beim Hochladen die Umlaute verloren.
+     *
+     * @param  int[]  $sections
+     */
+    private function title(Media $media, string $html, array $sections): string
     {
+        if (preg_match('#<title[^>]*>(.*?)</title>#is', $html, $match)) {
+            $title = trim(html_entity_decode(strip_tags($match[1]), ENT_QUOTES | ENT_HTML5, 'UTF-8'));
+
+            if ($title !== '' && ! Str::is(['Titel der Grafik', 'Document', 'Untitled'], $title)) {
+                return Str::limit($title, 150, '');
+            }
+        }
+
+        if ($lesson = Section::find($sections[0] ?? null)?->title) {
+            return $lesson;
+        }
+
         return Str::of($media->original_filename)
             ->beforeLast('.')
             ->replace(['-', '_'], ' ')

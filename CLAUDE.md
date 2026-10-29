@@ -67,7 +67,7 @@ in Moodle daraus wird. Gibt es darauf keine Antwort, ist die Funktion nicht fert
 | Ganzer Kurs | jedes Kapitel so | |
 | Einzelne Seite | **Textseite** | Inhalt live |
 | Aufgabe | **Aufgabe** mit Abgabe (keine, Datei, Text, beides) | Inhalt live, Bewertung in Moodle |
-| Interaktive Grafik | eingebettet in Buch/Textseite/Aufgabe | läuft weiter auf MotionBase, Höhe meldet sie selbst |
+| Interaktives Element | eingebettet in Buch/Textseite/Aufgabe | eine Seite auf eifach.online, dort gebaut und verwaltet; Höhe meldet sie selbst |
 | KI-Assistent | Aktivität des externen Tools (LTI) | einziger Teil, der LTI braucht |
 | Wissenscheck | **noch offen** | siehe unten |
 
@@ -95,6 +95,11 @@ weist sich mit dem LTI-Schlüssel des Moodle aus. Details: `moodle-plugin/motion
   die Abgabeart erscheint nur bei Aufgaben. Technisch hängt es weiterhin an `sections.task_submission`
   (gesetzt = Aufgabe), eine eigene Spalte braucht es dafür nicht.
 - **KI-Assistent** ist das einzige Stück, das noch über LTI läuft.
+- **Interaktive Elemente entstehen auf eifach.online**, nicht hier: dort gibt es Versionen, Dateien, das Design
+  der Schule und Mitbearbeitende. MotionBase bettet sie über ihre Adresse ein (`add_interactive_block`) und
+  liefert nur noch die früher hochgeladenen Grafiken aus. Umzug der bestehenden:
+  `motionbase:interactives-export`, dann `scripts/import-pages.ts` auf dem eifach-Server, dann
+  `motionbase:interactives-relink` – siehe `docs/interaktive-elemente.md`.
 
 ## Umgebung
 
