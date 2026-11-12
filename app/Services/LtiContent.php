@@ -53,7 +53,12 @@ class LtiContent
                 : null,
         };
 
-        return $content && ($content->type === 'chat' || $content->sections()->isNotEmpty()) ? $content : null;
+        // A hidden course shows nothing, whichever part of it was chosen
+        if (! $content || ! $content->topic?->is_published) {
+            return null;
+        }
+
+        return $content->type === 'chat' || $content->sections()->isNotEmpty() ? $content : null;
     }
 
     /**
@@ -159,7 +164,7 @@ class LtiContent
      */
     public static function catalog(): array
     {
-        $topics = Topic::with(['chapters' => fn ($q) => $q->where('is_published', true)->orderBy('sort_order')
+        $topics = Topic::where('is_published', true)->with(['chapters' => fn ($q) => $q->where('is_published', true)->orderBy('sort_order')
             ->with(['sections' => fn ($q) => $q->where('is_published', true)->orderBy('sort_order')])])
             ->orderBy('title')
             ->get();

@@ -31,6 +31,7 @@ class TopicController extends Controller
                 'id' => $topic->id,
                 'slug' => $topic->slug,
                 'title' => $topic->title,
+                'is_published' => $topic->is_published,
                 'chapters_count' => $topic->chapters_count,
                 'sections_count' => $topic->sections_count,
                 'category' => $topic->category?->only(['id', 'name']),
@@ -128,6 +129,7 @@ class TopicController extends Controller
                 'slug' => $topic->slug,
                 'title' => $topic->title,
                 'category_id' => $topic->category_id,
+                'is_published' => $topic->is_published,
                 'chapters' => $topic->chapters->map(fn (Chapter $chapter) => [
                     'id' => $chapter->id,
                     'slug' => $chapter->slug,
@@ -165,6 +167,7 @@ class TopicController extends Controller
             'title' => ['sometimes', 'string', 'max:255'],
             'slug' => ['sometimes', 'string', 'max:255'],
             'category_id' => ['sometimes', 'integer', 'exists:categories,id'],
+            'is_published' => ['sometimes', 'boolean'],
         ]);
 
         if (isset($validated['slug'])) {

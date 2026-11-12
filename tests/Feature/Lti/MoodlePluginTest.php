@@ -375,3 +375,13 @@ it('keeps platforms and the plugin to admins', function () {
 
     expect(LtiPlatform::where('issuer', 'https://eigen.test')->exists())->toBeFalse();
 });
+
+it('hands over nothing from a hidden course', function () {
+    $task = moodleTask();
+    $task->chapter->topic->update(['is_published' => false]);
+    $headers = ['Authorization' => 'Bearer '.moodlePluginToken($this->moodleKey)];
+
+    getJson("/moodle/tasks/{$task->id}", $headers)->assertNotFound();
+    getJson("/moodle/lessons/{$task->id}", $headers)->assertNotFound();
+    getJson("/moodle/chapters/{$task->chapter_id}", $headers)->assertNotFound();
+});

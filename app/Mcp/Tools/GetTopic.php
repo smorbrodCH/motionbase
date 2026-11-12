@@ -37,6 +37,7 @@ class GetTopic extends Tool
             'id' => $topic->id,
             'title' => $topic->title,
             'slug' => $topic->slug,
+            'published' => $topic->is_published,
             'url' => url('/themen/'.$topic->slug),
             'chapters' => $topic->chapters->map(fn (Chapter $chapter) => [
                 'id' => $chapter->id,

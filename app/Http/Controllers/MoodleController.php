@@ -38,7 +38,7 @@ class MoodleController extends Controller
 
         $chapter = $section->chapter;
 
-        abort_unless($section->task_submission && $section->is_published && $chapter?->is_published, 404);
+        abort_unless($section->task_submission && $section->is_published && $chapter?->is_published && $chapter->topic?->is_published, 404);
 
         return response()->json([
             'id' => $section->id,
@@ -60,7 +60,7 @@ class MoodleController extends Controller
 
         $chapter = $section->chapter;
 
-        abort_unless($section->is_published && $chapter?->is_published, 404);
+        abort_unless($section->is_published && $chapter?->is_published && $chapter->topic?->is_published, 404);
 
         return response()->json([
             'id' => $section->id,
@@ -82,7 +82,7 @@ class MoodleController extends Controller
     {
         $this->authenticate($request);
 
-        abort_unless($chapter->is_published, 404);
+        abort_unless($chapter->is_published && $chapter->topic?->is_published, 404);
 
         $withHtml = $request->boolean('html');
 

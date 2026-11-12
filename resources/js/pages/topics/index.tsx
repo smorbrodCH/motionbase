@@ -214,6 +214,14 @@ function TopicCard({ topic, onDelete }: { topic: Topic; onDelete: () => void }) 
                                     {topic.category.name}
                                 </Badge>
                             )}
+                            {topic.is_published === false && (
+                                <Badge
+                                    variant="outline"
+                                    className="text-xs font-medium text-zinc-500"
+                                >
+                                    Ausgeblendet
+                                </Badge>
+                            )}
                         </div>
                         <p className="line-clamp-2 text-sm text-zinc-500">
                             {topic.excerpt ?? 'Keine Beschreibung verfügbar.'}

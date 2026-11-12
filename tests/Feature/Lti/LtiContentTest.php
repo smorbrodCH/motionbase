@@ -226,3 +226,15 @@ it('tells the teacher what the class sees, and only the teacher', function () {
         ->get(LtiContent::forSession($learner)->url($learner->session_token))
         ->assertDontSee('Nur für Lehrpersonen sichtbar');
 });
+
+it('leaves a hidden course out of the catalogue and refuses to show it', function () {
+    $topic = Topic::factory()->unpublished()->create();
+    $chapter = Chapter::factory()->create(['topic_id' => $topic->id]);
+    $section = Section::factory()->create(['chapter_id' => $chapter->id]);
+
+    expect(LtiContent::catalog())->toBe([])
+        ->and(LtiContent::fromChoice("topic:{$topic->id}"))->toBeNull()
+        ->and(LtiContent::fromChoice("chapter:{$chapter->id}"))->toBeNull()
+        ->and(LtiContent::fromChoice("section:{$section->id}"))->toBeNull()
+        ->and(LtiContent::fromChoice("chat:{$topic->id}"))->toBeNull();
+});

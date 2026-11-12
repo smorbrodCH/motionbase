@@ -55,3 +55,42 @@ it('404s the topic embed for a chapter that has no published sections', function
 
     get("/embed/topic/{$topic->id}")->assertNotFound();
 });
+
+it('hides a whole unpublished course from the overview, its pages, embeds and chat', function () {
+    $visible = Topic::factory()->create(['title' => 'Sichtbarer Kurs']);
+    Section::factory()->for(Chapter::factory()->for($visible))->create();
+
+    $topic = Topic::factory()->unpublished()->create(['title' => 'Versteckter Kurs']);
+    $chapter = Chapter::factory()->for($topic)->create();
+    $section = Section::factory()->for($chapter)->create();
+
+    get('/themen')
+        ->assertOk()
+        ->assertInertia(fn ($page) => $page
+            ->has('topics', 1)
+            ->where('topics.0.title', 'Sichtbarer Kurs'));
+
+    get("/themen/{$topic->slug}")->assertNotFound();
+    get("/themen/{$topic->slug}/{$chapter->slug}/{$section->slug}")->assertNotFound();
+    get("/embed/topic/{$topic->id}")->assertNotFound();
+    get("/embed/chapter/{$chapter->id}")->assertNotFound();
+    get("/embed/chapter/{$chapter->id}/section/{$section->id}")->assertNotFound();
+    get("/embed/section/{$section->id}")->assertNotFound();
+    Pest\Laravel\postJson("/themen/{$topic->slug}/chat", ['question' => 'Hallo?'])->assertNotFound();
+});
+
+it('lets the owner hide and show a whole course', function () {
+    $topic = Topic::factory()->create();
+
+    expect($topic->fresh()->is_published)->toBeTrue();
+
+    Pest\Laravel\actingAs($topic->user)
+        ->put("/admin/topics/{$topic->id}", ['is_published' => false])
+        ->assertRedirect();
+
+    expect($topic->fresh()->is_published)->toBeFalse();
+
+    Pest\Laravel\actingAs($topic->user)
+        ->get('/admin/topics')
+        ->assertInertia(fn ($page) => $page->where('topics.0.is_published', false));
+});

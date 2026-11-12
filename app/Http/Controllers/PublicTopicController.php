@@ -16,6 +16,7 @@ class PublicTopicController extends Controller
     public function index(Request $request): Response
     {
         $topics = Topic::query()
+            ->where('is_published', true)
             ->with([
                 'category:id,name',
                 'user:id,name',
@@ -54,6 +55,8 @@ class PublicTopicController extends Controller
 
     public function show(Topic $topic, ?Chapter $chapter = null, ?Section $section = null): Response
     {
+        abort_unless($topic->is_published, 404);
+
         $topic->loadMissing([
             'category:id,name',
             'user:id,name',

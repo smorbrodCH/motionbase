@@ -128,6 +128,7 @@ function snapshot(title: string, content: EditorContent | null): string {
 interface TopicsEditProps {
     topic: Topic & {
         category_id: number;
+        is_published: boolean;
         chapters: Array<Chapter>;
     };
     activeSection: Section | null;
@@ -172,6 +173,7 @@ export default function TopicsEdit({ topic, activeSection, categories }: TopicsE
         title: topic.title,
         slug: topic.slug,
         category_id: topic.category_id,
+        is_published: topic.is_published,
     });
 
     // Find the selected chapter
@@ -810,6 +812,26 @@ export default function TopicsEdit({ topic, activeSection, categories }: TopicsE
                                             </SelectContent>
                                         </Select>
                                         <InputError message={topicForm.errors.category_id} />
+                                    </div>
+
+                                    <div className="space-y-1">
+                                        <div className="flex items-center space-x-2">
+                                            <Checkbox
+                                                id={`topic-published-${topic.id}`}
+                                                checked={topicForm.data.is_published}
+                                                onCheckedChange={(checked) => topicForm.setData('is_published', checked === true)}
+                                            />
+                                            <Label
+                                                htmlFor={`topic-published-${topic.id}`}
+                                                className="text-sm font-normal cursor-pointer"
+                                            >
+                                                Veröffentlicht
+                                            </Label>
+                                        </div>
+                                        <p className="text-xs text-muted-foreground">
+                                            Ohne Haken ist der ganze Kurs ausgeblendet: nicht in der Übersicht, nicht
+                                            aufrufbar und in Moodle nicht mehr auswählbar oder sichtbar.
+                                        </p>
                                     </div>
 
                                     {topicForm.isDirty && (
