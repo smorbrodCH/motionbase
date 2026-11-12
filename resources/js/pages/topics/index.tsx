@@ -1,7 +1,7 @@
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import AppLayout from '@/layouts/app-layout';
-import { type BreadcrumbItem, type Category, type Topic } from '@/types';
+import { type BreadcrumbItem, type Category, type Topic, type TopicStatus } from '@/types';
 import { Head, Link, router } from '@inertiajs/react';
 import {
     ArrowUpRight,
@@ -15,6 +15,7 @@ import {
     Trash2,
 } from 'lucide-react';
 import { type MouseEvent, useMemo, useState } from 'react';
+
 import {
     DropdownMenu,
     DropdownMenuContent,
@@ -22,6 +23,14 @@ import {
     DropdownMenuTrigger,
 } from '@/components/ui/dropdown-menu';
 import { Input } from '@/components/ui/input';
+
+const STATUS_LABELS: Record<TopicStatus, string> = {
+    draft: 'Entwurf',
+    private: 'Privat',
+    published: 'Veröffentlicht',
+    revision: 'In Überarbeitung',
+    archived: 'Archiv',
+};
 
 const breadcrumbs: BreadcrumbItem[] = [
     {
@@ -214,12 +223,16 @@ function TopicCard({ topic, onDelete }: { topic: Topic; onDelete: () => void }) 
                                     {topic.category.name}
                                 </Badge>
                             )}
-                            {topic.is_published === false && (
+                            {topic.status && topic.status !== 'published' && (
                                 <Badge
                                     variant="outline"
-                                    className="text-xs font-medium text-zinc-500"
+                                    className={
+                                        topic.status === 'revision'
+                                            ? 'border-amber-200 bg-amber-50 text-xs font-medium text-amber-800'
+                                            : 'text-xs font-medium text-zinc-500'
+                                    }
                                 >
-                                    Ausgeblendet
+                                    {STATUS_LABELS[topic.status]}
                                 </Badge>
                             )}
                         </div>

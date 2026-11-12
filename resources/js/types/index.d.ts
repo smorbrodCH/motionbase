@@ -78,12 +78,16 @@ export interface Chapter {
     updated_at?: string;
 }
 
+/** Veröffentlichungsstatus eines ganzen Kurses */
+export type TopicStatus = 'draft' | 'private' | 'published' | 'revision' | 'archived';
+
 export interface Topic {
     id: number;
     title: string;
     slug: string;
     category_id?: number;
-    is_published?: boolean;
+    status?: TopicStatus;
+    in_revision?: boolean;
     category?: Pick<Category, 'id' | 'name'> | null;
     chapters?: Chapter[];
     activeSection?: Section | null;

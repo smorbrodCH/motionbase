@@ -53,6 +53,13 @@ class MoodleHtml
         return $html.'<p class="mb-source"><a href="'.e($url).'">Diese Aufgabe in MotionBase öffnen</a></p>';
     }
 
+    /** Shown in Moodle in place of a lesson while its course is being revised. */
+    public function revisionNote(): string
+    {
+        return '<div class="mb-revision"><p><strong>In Überarbeitung</strong></p>'
+            .'<p>Dieser Kurs wird gerade überarbeitet und ist bald wieder verfügbar.</p></div>';
+    }
+
     public function blocks(array $blocks): string
     {
         return implode("\n", array_filter(array_map(fn ($block) => is_array($block) ? $this->block($block) : '', $blocks)));

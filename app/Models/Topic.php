@@ -25,24 +25,58 @@ class Topic extends Model
         'category_id',
         'title',
         'slug',
-        'is_published',
+        'status',
     ];
+
+    /** Being written: not listed, not reachable. New courses start here. */
+    public const DRAFT = 'draft';
+
+    /** Not listed, but reachable by its link, in embeds and in Moodle. */
+    public const PRIVATE = 'private';
+
+    /** Listed and open. */
+    public const PUBLISHED = 'published';
+
+    /** Listed, but locked with a note that it is being revised. */
+    public const REVISION = 'revision';
+
+    /** Outdated: not listed or offered any more, still readable with a note. */
+    public const ARCHIVED = 'archived';
+
+    public const STATUSES = [self::DRAFT, self::PRIVATE, self::PUBLISHED, self::REVISION, self::ARCHIVED];
+
+    /** Shown in the course overview. */
+    public const LISTED = [self::PUBLISHED, self::REVISION];
+
+    /** Offered to Moodle when a teacher picks content. */
+    public const OFFERED = [self::PUBLISHED, self::PRIVATE];
 
     /**
      * @var array<string, mixed>
      */
     protected $attributes = [
-        'is_published' => true,
+        'status' => self::PUBLISHED,
     ];
 
-    /**
-     * @return array<string, string>
-     */
-    protected function casts(): array
+    public function isDraft(): bool
     {
-        return [
-            'is_published' => 'boolean',
-        ];
+        return $this->status === self::DRAFT;
+    }
+
+    public function isInRevision(): bool
+    {
+        return $this->status === self::REVISION;
+    }
+
+    public function isArchived(): bool
+    {
+        return $this->status === self::ARCHIVED;
+    }
+
+    /** Whether its content can be read at all. */
+    public function isReadable(): bool
+    {
+        return ! $this->isDraft() && ! $this->isInRevision();
     }
 
     /**

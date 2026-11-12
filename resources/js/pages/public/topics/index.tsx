@@ -3,7 +3,7 @@ import { Button } from '@/components/ui/button';
 import PublicLayout from '@/layouts/public-layout';
 import { type Category, type Topic } from '@/types';
 import { Head, Link, router } from '@inertiajs/react';
-import { ArrowRight, BookOpen, FolderOpen, User } from 'lucide-react';
+import { ArrowRight, BookOpen, FolderOpen, Lock, User } from 'lucide-react';
 
 interface PublicTopicsIndexProps {
     topics: Topic[];
@@ -89,6 +89,10 @@ export default function PublicTopicsIndex({ topics, categories, filters }: Publi
 }
 
 function TopicCard({ topic }: { topic: Topic }) {
+    if (topic.in_revision) {
+        return <RevisionCard topic={topic} />;
+    }
+
     return (
         <Link
             href={`/themen/${topic.slug}`}
@@ -143,5 +147,33 @@ function TopicCard({ topic }: { topic: Topic }) {
                 </span>
             </div>
         </Link>
+    );
+}
+
+/** Ein Kurs in Überarbeitung: sichtbar, aber nicht zu öffnen. */
+function RevisionCard({ topic }: { topic: Topic }) {
+    return (
+        <div className="flex flex-col rounded-2xl border border-dashed border-zinc-200 bg-zinc-50 p-6"
+        >
+            <div className="flex items-start justify-between gap-4">
+                <div className="flex h-12 w-12 shrink-0 items-center justify-center rounded-xl bg-zinc-100 text-zinc-400">
+                    <Lock className="h-6 w-6" aria-hidden="true" />
+                </div>
+                <Badge className="border-amber-200 bg-amber-50 text-xs font-medium text-amber-800" variant="outline">
+                    In Überarbeitung
+                </Badge>
+            </div>
+
+            <div className="mt-5 flex-1">
+                <h3 className="text-lg font-semibold text-zinc-500">{topic.title}</h3>
+                <p className="mt-2 text-sm text-zinc-500">
+                    Dieser Kurs wird gerade überarbeitet und ist bald wieder verfügbar.
+                </p>
+            </div>
+
+            {topic.category && (
+                <div className="mt-6 border-t border-zinc-200 pt-4 text-xs text-zinc-500">{topic.category.name}</div>
+            )}
+        </div>
     );
 }

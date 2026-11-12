@@ -16,7 +16,7 @@ class PublicTopicController extends Controller
     public function index(Request $request): Response
     {
         $topics = Topic::query()
-            ->where('is_published', true)
+            ->whereIn('status', Topic::LISTED)
             ->with([
                 'category:id,name',
                 'user:id,name',
@@ -35,7 +35,9 @@ class PublicTopicController extends Controller
                 'id' => $topic->id,
                 'slug' => $topic->slug,
                 'title' => $topic->title,
-                'excerpt' => $this->excerptFromTopic($topic),
+                'in_revision' => $topic->isInRevision(),
+                // Nothing of a course being revised leaves the server, not even its first lines
+                'excerpt' => $topic->isInRevision() ? null : $this->excerptFromTopic($topic),
                 'category' => $topic->category?->only(['id', 'name']),
                 'author' => $topic->user?->only(['id', 'name']),
                 'updated_at' => $topic->updated_at?->toIso8601String(),
@@ -55,7 +57,21 @@ class PublicTopicController extends Controller
 
     public function show(Topic $topic, ?Chapter $chapter = null, ?Section $section = null): Response
     {
-        abort_unless($topic->is_published, 404);
+        abort_if($topic->isDraft(), 404);
+
+        // Being revised: listed, but only a note instead of the content
+        if ($topic->isInRevision()) {
+            $topic->loadMissing('category:id,name');
+
+            return Inertia::render('public/topics/revision', [
+                'topic' => [
+                    'id' => $topic->id,
+                    'slug' => $topic->slug,
+                    'title' => $topic->title,
+                    'category' => $topic->category?->only(['id', 'name']),
+                ],
+            ]);
+        }
 
         $topic->loadMissing([
             'category:id,name',
@@ -97,6 +113,7 @@ class PublicTopicController extends Controller
                 'id' => $topic->id,
                 'slug' => $topic->slug,
                 'title' => $topic->title,
+                'archived' => $topic->isArchived(),
                 'category' => $topic->category?->only(['id', 'name']),
                 'author' => $topic->user?->only(['id', 'name']),
                 'updated_at' => $topic->updated_at?->toIso8601String(),

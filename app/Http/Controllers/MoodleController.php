@@ -38,7 +38,8 @@ class MoodleController extends Controller
 
         $chapter = $section->chapter;
 
-        abort_unless($section->task_submission && $section->is_published && $chapter?->is_published && $chapter->topic?->is_published, 404);
+        // Tasks are only fetched when Moodle creates the assignment - nothing to create while a course is revised
+        abort_unless($section->task_submission && $section->is_published && $chapter?->is_published && $chapter->topic?->isReadable(), 404);
 
         return response()->json([
             'id' => $section->id,
@@ -60,13 +61,16 @@ class MoodleController extends Controller
 
         $chapter = $section->chapter;
 
-        abort_unless($section->is_published && $chapter?->is_published && $chapter->topic?->is_published, 404);
+        abort_unless($section->is_published && $chapter?->is_published && $chapter->topic && ! $chapter->topic->isDraft(), 404);
 
         return response()->json([
             'id' => $section->id,
             'title' => $section->title,
             'chapter_id' => $chapter->id,
-            'html' => $html->render($section, embed: $request->boolean('embed'), source: false),
+            // Being revised: Moodle shows the note in place of the lesson
+            'html' => $chapter->topic->isInRevision()
+                ? $html->revisionNote()
+                : $html->render($section, embed: $request->boolean('embed'), source: false),
         ]);
     }
 
@@ -82,7 +86,8 @@ class MoodleController extends Controller
     {
         $this->authenticate($request);
 
-        abort_unless($chapter->is_published && $chapter->topic?->is_published, 404);
+        // While a course is revised its books keep their chapters: only the lessons' content is replaced by the note
+        abort_unless($chapter->is_published && $chapter->topic && ! $chapter->topic->isDraft(), 404);
 
         $withHtml = $request->boolean('html');
 
@@ -94,7 +99,9 @@ class MoodleController extends Controller
                 ->map(fn (Section $section) => array_filter([
                     'id' => $section->id,
                     'title' => $section->title,
-                    'html' => $withHtml ? $html->render($section, source: false) : null,
+                    'html' => $withHtml
+                        ? ($chapter->topic->isInRevision() ? $html->revisionNote() : $html->render($section, source: false))
+                        : null,
                 ], fn ($value) => $value !== null))
                 ->values(),
         ]);

@@ -56,19 +56,32 @@ it('404s the topic embed for a chapter that has no published sections', function
     get("/embed/topic/{$topic->id}")->assertNotFound();
 });
 
-it('hides a whole unpublished course from the overview, its pages, embeds and chat', function () {
-    $visible = Topic::factory()->create(['title' => 'Sichtbarer Kurs']);
-    Section::factory()->for(Chapter::factory()->for($visible))->create();
-
-    $topic = Topic::factory()->unpublished()->create(['title' => 'Versteckter Kurs']);
+function courseWithLesson(string $status, string $title): array
+{
+    $topic = Topic::factory()->status($status)->create(['title' => $title]);
     $chapter = Chapter::factory()->for($topic)->create();
     $section = Section::factory()->for($chapter)->create();
+
+    return [$topic, $chapter, $section];
+}
+
+it('lists published courses and courses being revised, nothing else', function () {
+    courseWithLesson(Topic::PUBLISHED, 'Offen');
+    courseWithLesson(Topic::REVISION, 'Gesperrt');
+    courseWithLesson(Topic::DRAFT, 'Entwurf');
+    courseWithLesson(Topic::PRIVATE, 'Privat');
+    courseWithLesson(Topic::ARCHIVED, 'Alt');
 
     get('/themen')
         ->assertOk()
         ->assertInertia(fn ($page) => $page
-            ->has('topics', 1)
-            ->where('topics.0.title', 'Sichtbarer Kurs'));
+            ->has('topics', 2)
+            ->where('topics', fn ($topics) => collect($topics)->pluck('in_revision', 'title')->sortKeys()->all()
+                === ['Gesperrt' => true, 'Offen' => false]));
+});
+
+it('keeps a draft out of reach everywhere', function () {
+    [$topic, $chapter, $section] = courseWithLesson(Topic::DRAFT, 'Entwurf');
 
     get("/themen/{$topic->slug}")->assertNotFound();
     get("/themen/{$topic->slug}/{$chapter->slug}/{$section->slug}")->assertNotFound();
@@ -79,18 +92,53 @@ it('hides a whole unpublished course from the overview, its pages, embeds and ch
     Pest\Laravel\postJson("/themen/{$topic->slug}/chat", ['question' => 'Hallo?'])->assertNotFound();
 });
 
-it('lets the owner hide and show a whole course', function () {
+it('shows a course being revised as locked, with a note instead of the content', function () {
+    [$topic, $chapter, $section] = courseWithLesson(Topic::REVISION, 'Gesperrt');
+
+    get("/themen/{$topic->slug}")
+        ->assertOk()
+        ->assertInertia(fn ($page) => $page
+            ->component('public/topics/revision')
+            ->where('topic.title', 'Gesperrt')
+            ->missing('topic.chapters'));
+    get("/themen/{$topic->slug}/{$chapter->slug}/{$section->slug}")
+        ->assertInertia(fn ($page) => $page->component('public/topics/revision'));
+
+    foreach (["/embed/topic/{$topic->id}", "/embed/chapter/{$chapter->id}", "/embed/chapter/{$chapter->id}/section/{$section->id}", "/embed/section/{$section->id}"] as $url) {
+        get($url)->assertOk()->assertSee('In Überarbeitung')->assertDontSee($section->title);
+    }
+
+    Pest\Laravel\postJson("/themen/{$topic->slug}/chat", ['question' => 'Hallo?'])->assertNotFound();
+});
+
+it('keeps private and archived courses readable by their link', function () {
+    [$private] = courseWithLesson(Topic::PRIVATE, 'Privat');
+    [$archived, $chapter, $section] = courseWithLesson(Topic::ARCHIVED, 'Alt');
+
+    get("/themen/{$private->slug}")
+        ->assertInertia(fn ($page) => $page->component('public/topics/show')->where('topic.archived', false));
+    get("/themen/{$archived->slug}")
+        ->assertInertia(fn ($page) => $page->component('public/topics/show')->where('topic.archived', true));
+    get("/embed/section/{$section->id}")->assertOk()->assertSee($section->title);
+});
+
+it('lets the owner set the status, and starts new courses as drafts', function () {
     $topic = Topic::factory()->create();
 
-    expect($topic->fresh()->is_published)->toBeTrue();
+    expect($topic->fresh()->status)->toBe(Topic::PUBLISHED);
 
     Pest\Laravel\actingAs($topic->user)
-        ->put("/admin/topics/{$topic->id}", ['is_published' => false])
+        ->put("/admin/topics/{$topic->id}", ['status' => Topic::REVISION])
         ->assertRedirect();
 
-    expect($topic->fresh()->is_published)->toBeFalse();
+    expect($topic->fresh()->status)->toBe(Topic::REVISION);
 
     Pest\Laravel\actingAs($topic->user)
-        ->get('/admin/topics')
-        ->assertInertia(fn ($page) => $page->where('topics.0.is_published', false));
+        ->put("/admin/topics/{$topic->id}", ['status' => 'irgendwas'])
+        ->assertSessionHasErrors('status');
+
+    Pest\Laravel\actingAs($topic->user)
+        ->post('/admin/topics', ['title' => 'Neu', 'category_id' => $topic->category_id]);
+
+    expect(Topic::where('title', 'Neu')->value('status'))->toBe(Topic::DRAFT);
 });
