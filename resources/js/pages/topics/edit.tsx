@@ -11,7 +11,7 @@ import {
     SelectTrigger,
     SelectValue,
 } from '@/components/ui/select';
-import { type Category, type Chapter, type Section, type Topic } from '@/types';
+import { type Category, type Chapter, type Section, type Topic, type TopicStatus } from '@/types';
 import { Head, router, useForm } from '@inertiajs/react';
 import type { OutputData } from '@editorjs/editorjs';
 import { useEffect, useRef, useCallback } from 'react';
@@ -125,10 +125,19 @@ function snapshot(title: string, content: EditorContent | null): string {
     return JSON.stringify({ title, content });
 }
 
+/** Veröffentlichungsstatus eines Kurses, mit dem, was er bewirkt */
+const TOPIC_STATUSES: Array<{ value: TopicStatus; label: string; hint: string }> = [
+    { value: 'draft', label: 'Entwurf', hint: 'Nur im Admin sichtbar. Nicht in der Übersicht, nicht aufrufbar, nicht in Moodle.' },
+    { value: 'private', label: 'Privat', hint: 'Nicht in der Übersicht, aber über den Link, eingebettet und in Moodle nutzbar.' },
+    { value: 'published', label: 'Veröffentlicht', hint: 'In der Übersicht und für alle offen.' },
+    { value: 'revision', label: 'In Überarbeitung', hint: 'In der Übersicht, aber gesperrt mit dem Vermerk «In Überarbeitung» – auch in Moodle.' },
+    { value: 'archived', label: 'Veraltet / Archiv', hint: 'Nicht mehr in der Übersicht und nicht mehr für Moodle auswählbar. Über den Link noch lesbar, mit Hinweis «Archiviert».' },
+];
+
 interface TopicsEditProps {
     topic: Topic & {
         category_id: number;
-        is_published: boolean;
+        status: TopicStatus;
         chapters: Array<Chapter>;
     };
     activeSection: Section | null;
@@ -173,7 +182,7 @@ export default function TopicsEdit({ topic, activeSection, categories }: TopicsE
         title: topic.title,
         slug: topic.slug,
         category_id: topic.category_id,
-        is_published: topic.is_published,
+        status: topic.status,
     });
 
     // Find the selected chapter
@@ -814,23 +823,26 @@ export default function TopicsEdit({ topic, activeSection, categories }: TopicsE
                                         <InputError message={topicForm.errors.category_id} />
                                     </div>
 
-                                    <div className="space-y-1">
-                                        <div className="flex items-center space-x-2">
-                                            <Checkbox
-                                                id={`topic-published-${topic.id}`}
-                                                checked={topicForm.data.is_published}
-                                                onCheckedChange={(checked) => topicForm.setData('is_published', checked === true)}
-                                            />
-                                            <Label
-                                                htmlFor={`topic-published-${topic.id}`}
-                                                className="text-sm font-normal cursor-pointer"
-                                            >
-                                                Veröffentlicht
-                                            </Label>
-                                        </div>
+                                    <div className="space-y-2">
+                                        <Label className="text-xs font-semibold">Status</Label>
+                                        <Select
+                                            value={topicForm.data.status}
+                                            onValueChange={(value) => topicForm.setData('status', value as TopicStatus)}
+                                        >
+                                            <SelectTrigger className="h-9 text-sm">
+                                                <SelectValue />
+                                            </SelectTrigger>
+                                            <SelectContent>
+                                                {TOPIC_STATUSES.map((status) => (
+                                                    <SelectItem key={status.value} value={status.value}>
+                                                        {status.label}
+                                                    </SelectItem>
+                                                ))}
+                                            </SelectContent>
+                                        </Select>
+                                        <InputError message={topicForm.errors.status} />
                                         <p className="text-xs text-muted-foreground">
-                                            Ohne Haken ist der ganze Kurs ausgeblendet: nicht in der Übersicht, nicht
-                                            aufrufbar und in Moodle nicht mehr auswählbar oder sichtbar.
+                                            {TOPIC_STATUSES.find((status) => status.value === topicForm.data.status)?.hint}
                                         </p>
                                     </div>
 

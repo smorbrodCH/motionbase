@@ -30,8 +30,8 @@ class TopicFactory extends Factory
         ];
     }
 
-    public function unpublished(): static
+    public function status(string $status): static
     {
-        return $this->state(fn () => ['is_published' => false]);
+        return $this->state(fn () => ['status' => $status]);
     }
 }

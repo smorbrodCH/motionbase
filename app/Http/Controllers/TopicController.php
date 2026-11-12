@@ -9,6 +9,7 @@ use App\Models\Topic;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Str;
+use Illuminate\Validation\Rule;
 use Inertia\Inertia;
 use Inertia\Response;
 
@@ -31,7 +32,7 @@ class TopicController extends Controller
                 'id' => $topic->id,
                 'slug' => $topic->slug,
                 'title' => $topic->title,
-                'is_published' => $topic->is_published,
+                'status' => $topic->status,
                 'chapters_count' => $topic->chapters_count,
                 'sections_count' => $topic->sections_count,
                 'category' => $topic->category?->only(['id', 'name']),
@@ -66,6 +67,8 @@ class TopicController extends Controller
             'title' => $validated['title'],
             'slug' => (new Topic)->uniqueSlug($validated['title']),
             'category_id' => (int) $validated['category_id'],
+            // Nobody sees a course before its author publishes it
+            'status' => Topic::DRAFT,
         ]);
 
         // Create an initial default chapter
@@ -129,7 +132,7 @@ class TopicController extends Controller
                 'slug' => $topic->slug,
                 'title' => $topic->title,
                 'category_id' => $topic->category_id,
-                'is_published' => $topic->is_published,
+                'status' => $topic->status,
                 'chapters' => $topic->chapters->map(fn (Chapter $chapter) => [
                     'id' => $chapter->id,
                     'slug' => $chapter->slug,
@@ -167,7 +170,7 @@ class TopicController extends Controller
             'title' => ['sometimes', 'string', 'max:255'],
             'slug' => ['sometimes', 'string', 'max:255'],
             'category_id' => ['sometimes', 'integer', 'exists:categories,id'],
-            'is_published' => ['sometimes', 'boolean'],
+            'status' => ['sometimes', 'string', Rule::in(Topic::STATUSES)],
         ]);
 
         if (isset($validated['slug'])) {

@@ -33,7 +33,7 @@ class ListTopics extends Tool
                 'id' => $topic->id,
                 'title' => $topic->title,
                 'slug' => $topic->slug,
-                'published' => $topic->is_published,
+                'status' => $topic->status,
                 'category' => $topic->category?->name,
                 'chapters' => $topic->chapters_count,
                 'sections' => $topic->sections_count,

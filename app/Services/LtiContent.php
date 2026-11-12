@@ -53,8 +53,8 @@ class LtiContent
                 : null,
         };
 
-        // A hidden course shows nothing, whichever part of it was chosen
-        if (! $content || ! $content->topic?->is_published) {
+        // A draft shows nothing, whichever part of it was chosen
+        if (! $content || ! $content->topic || $content->topic->isDraft()) {
             return null;
         }
 
@@ -164,7 +164,9 @@ class LtiContent
      */
     public static function catalog(): array
     {
-        $topics = Topic::where('is_published', true)->with(['chapters' => fn ($q) => $q->where('is_published', true)->orderBy('sort_order')
+        // Only published and private courses can be chosen - not drafts, nor
+        // courses being revised or archived
+        $topics = Topic::whereIn('status', Topic::OFFERED)->with(['chapters' => fn ($q) => $q->where('is_published', true)->orderBy('sort_order')
             ->with(['sections' => fn ($q) => $q->where('is_published', true)->orderBy('sort_order')])])
             ->orderBy('title')
             ->get();

@@ -15,7 +15,9 @@ class PublicEmbedController extends Controller
      */
     public function topic(Topic $topic)
     {
-        abort_unless($topic->is_published, 404);
+        if ($locked = $this->courseLock($topic)) {
+            return $locked;
+        }
 
         $topic->loadMissing([
             'chapters' => fn ($q) => $q->where('is_published', true)->orderBy('sort_order')
@@ -42,9 +44,13 @@ class PublicEmbedController extends Controller
      */
     public function chapter(Chapter $chapter)
     {
-        // Only allow published chapters of a published course
-        if (! $chapter->is_published || ! $chapter->topic?->is_published) {
+        // Only allow published chapters
+        if (! $chapter->is_published) {
             abort(404);
+        }
+
+        if ($locked = $this->courseLock($chapter->topic)) {
+            return $locked;
         }
 
         $chapter->loadMissing([
@@ -77,7 +83,7 @@ class PublicEmbedController extends Controller
     public function chapterSection(Chapter $chapter, Section $section)
     {
         // Only allow published content
-        if (! $chapter->is_published || ! $chapter->topic?->is_published) {
+        if (! $chapter->is_published) {
             abort(404);
         }
 
@@ -89,6 +95,10 @@ class PublicEmbedController extends Controller
         // Only allow published sections
         if (! $section->is_published) {
             abort(404);
+        }
+
+        if ($locked = $this->courseLock($chapter->topic)) {
+            return $locked;
         }
 
         $chapter->loadMissing([
@@ -123,9 +133,13 @@ class PublicEmbedController extends Controller
 
         $section->loadMissing(['chapter.topic']);
 
-        // Only allow if chapter and course are published
-        if (! $section->chapter->is_published || ! $section->chapter->topic?->is_published) {
+        // Only allow if chapter is published
+        if (! $section->chapter->is_published) {
             abort(404);
+        }
+
+        if ($locked = $this->courseLock($section->chapter->topic)) {
+            return $locked;
         }
 
         return View::make('embed.section', [

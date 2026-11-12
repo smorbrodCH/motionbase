@@ -24,6 +24,8 @@ import 'prismjs/components/prism-json';
 interface PublicTopicShowProps {
     topic: Topic & {
         chapters: Array<Chapter>;
+        // Veraltet / Archiv: noch lesbar, aber mit Hinweis
+        archived?: boolean;
         // is_task: in Moodle wird daraus eine Aufgabe, hier trägt sie ein Abzeichen.
         activeSection: (Section & { is_task?: boolean }) | null;
     };
@@ -260,6 +262,12 @@ export default function PublicTopicShow({ topic }: PublicTopicShowProps) {
                                 </span>
                             )}
                         </header>
+
+                        {topic.archived && (
+                            <div role="note" className="mb-8 rounded-xl border border-zinc-200 bg-zinc-50 px-4 py-3 text-sm text-zinc-600">
+                                <strong className="font-semibold text-zinc-900">Archiviert:</strong> Dieser Kurs ist veraltet und wird nicht mehr gepflegt.
+                            </div>
+                        )}
 
                         {tocItems.length > 0 && (
                             <nav aria-label="Inhaltsverzeichnis" className="mb-8">

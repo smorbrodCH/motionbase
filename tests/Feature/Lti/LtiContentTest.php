@@ -227,14 +227,20 @@ it('tells the teacher what the class sees, and only the teacher', function () {
         ->assertDontSee('Nur für Lehrpersonen sichtbar');
 });
 
-it('leaves a hidden course out of the catalogue and refuses to show it', function () {
-    $topic = Topic::factory()->unpublished()->create();
-    $chapter = Chapter::factory()->create(['topic_id' => $topic->id]);
-    $section = Section::factory()->create(['chapter_id' => $chapter->id]);
+it('offers only published and private courses, and never shows a draft', function () {
+    foreach (Topic::STATUSES as $status) {
+        $topic = Topic::factory()->status($status)->create(['title' => $status]);
+        quizLesson(Chapter::factory()->create(['topic_id' => $topic->id]), 1);
+    }
 
-    expect(LtiContent::catalog())->toBe([])
-        ->and(LtiContent::fromChoice("topic:{$topic->id}"))->toBeNull()
-        ->and(LtiContent::fromChoice("chapter:{$chapter->id}"))->toBeNull()
-        ->and(LtiContent::fromChoice("section:{$section->id}"))->toBeNull()
-        ->and(LtiContent::fromChoice("chat:{$topic->id}"))->toBeNull();
+    expect(collect(LtiContent::catalog())->pluck('title')->sort()->values()->all())->toBe(['private', 'published']);
+
+    $draft = Topic::where('status', Topic::DRAFT)->first();
+    expect(LtiContent::fromChoice("topic:{$draft->id}"))->toBeNull()
+        ->and(LtiContent::fromChoice("chat:{$draft->id}"))->toBeNull()
+        ->and(LtiContent::fromChoice('chapter:'.$draft->chapters()->value('id')))->toBeNull();
+
+    // A course being revised still resolves, so a launch shows its note instead of an error
+    $revision = Topic::where('status', Topic::REVISION)->first();
+    expect(LtiContent::fromChoice("topic:{$revision->id}"))->not->toBeNull();
 });

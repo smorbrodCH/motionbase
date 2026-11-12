@@ -376,12 +376,31 @@ it('keeps platforms and the plugin to admins', function () {
     expect(LtiPlatform::where('issuer', 'https://eigen.test')->exists())->toBeFalse();
 });
 
-it('hands over nothing from a hidden course', function () {
+it('hands over nothing from a draft, and a note from a course being revised', function () {
     $task = moodleTask();
-    $task->chapter->topic->update(['is_published' => false]);
     $headers = ['Authorization' => 'Bearer '.moodlePluginToken($this->moodleKey)];
+
+    $task->chapter->topic->update(['status' => \App\Models\Topic::REVISION]);
+
+    getJson("/moodle/lessons/{$task->id}", $headers)
+        ->assertOk()
+        ->assertJsonPath('html', fn ($html) => str_contains($html, 'In Überarbeitung'));
+    // The book keeps its chapters while the course is revised
+    getJson("/moodle/chapters/{$task->chapter_id}", $headers)->assertOk();
+    getJson("/moodle/tasks/{$task->id}", $headers)->assertNotFound();
+
+    $task->chapter->topic->update(['status' => \App\Models\Topic::DRAFT]);
 
     getJson("/moodle/tasks/{$task->id}", $headers)->assertNotFound();
     getJson("/moodle/lessons/{$task->id}", $headers)->assertNotFound();
     getJson("/moodle/chapters/{$task->chapter_id}", $headers)->assertNotFound();
+});
+
+it('gives a new book only the note while its course is revised', function () {
+    $task = moodleTask(['task_submission' => null], [['type' => 'paragraph', 'data' => ['text' => 'Geheimer Inhalt']]]);
+    $task->chapter->topic->update(['status' => \App\Models\Topic::REVISION]);
+
+    getJson("/moodle/chapters/{$task->chapter_id}?html=1", ['Authorization' => 'Bearer '.moodlePluginToken($this->moodleKey)])
+        ->assertOk()
+        ->assertJsonPath('lessons.0.html', fn ($html) => str_contains($html, 'In Überarbeitung') && ! str_contains($html, 'Geheimer Inhalt'));
 });
