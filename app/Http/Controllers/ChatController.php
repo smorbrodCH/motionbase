@@ -11,6 +11,8 @@ class ChatController extends Controller
 {
     public function chat(Request $request, Topic $topic): JsonResponse
     {
+        abort_unless($topic->is_published, 404);
+
         $validated = $request->validate([
             'question' => ['required', 'string', 'max:500'],
         ]);

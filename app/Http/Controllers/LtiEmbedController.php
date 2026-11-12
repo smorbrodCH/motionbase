@@ -19,6 +19,7 @@ class LtiEmbedController extends Controller
     public function topic(Request $request, Topic $topic)
     {
         $session = $this->validateSession($request);
+        abort_unless($topic->is_published, 404);
 
         $topic->loadMissing([
             'chapters' => fn ($q) => $q->where('is_published', true)->orderBy('sort_order')
@@ -37,6 +38,7 @@ class LtiEmbedController extends Controller
     public function lesson(Request $request, Topic $topic, Section $section)
     {
         $session = $this->validateSession($request);
+        abort_unless($topic->is_published, 404);
         $chapter = $section->chapter;
 
         abort_unless($section->is_published && $chapter?->is_published && $chapter->topic_id === $topic->id, 404);
@@ -53,6 +55,7 @@ class LtiEmbedController extends Controller
     public function section(Request $request, Topic $topic, Section $section)
     {
         $session = $this->validateSession($request);
+        abort_unless($topic->is_published, 404);
 
         abort_unless($section->is_published && $section->chapter?->is_published && $section->chapter->topic_id === $topic->id, 404);
 
@@ -72,6 +75,7 @@ class LtiEmbedController extends Controller
     public function chapter(Request $request, Topic $topic, Chapter $chapter)
     {
         $session = $this->validateSession($request);
+        abort_unless($topic->is_published, 404);
 
         // Ensure chapter belongs to topic
         if ($chapter->topic_id !== $topic->id) {
@@ -106,6 +110,7 @@ class LtiEmbedController extends Controller
     public function chapterSection(Request $request, Topic $topic, Chapter $chapter, Section $section)
     {
         $session = $this->validateSession($request);
+        abort_unless($topic->is_published, 404);
 
         // Ensure chapter belongs to topic
         if ($chapter->topic_id !== $topic->id) {
@@ -141,6 +146,7 @@ class LtiEmbedController extends Controller
     public function chat(Request $request, Topic $topic)
     {
         $session = $this->validateSession($request);
+        abort_unless($topic->is_published, 404);
 
         return View::make('lti.embed.chat', [
             'topic' => $topic,

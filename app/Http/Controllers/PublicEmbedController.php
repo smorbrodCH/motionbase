@@ -15,6 +15,8 @@ class PublicEmbedController extends Controller
      */
     public function topic(Topic $topic)
     {
+        abort_unless($topic->is_published, 404);
+
         $topic->loadMissing([
             'chapters' => fn ($q) => $q->where('is_published', true)->orderBy('sort_order')
                 ->with(['sections' => fn ($sq) => $sq->where('is_published', true)->orderBy('sort_order')]),
@@ -40,8 +42,8 @@ class PublicEmbedController extends Controller
      */
     public function chapter(Chapter $chapter)
     {
-        // Only allow published chapters
-        if (! $chapter->is_published) {
+        // Only allow published chapters of a published course
+        if (! $chapter->is_published || ! $chapter->topic?->is_published) {
             abort(404);
         }
 
@@ -75,7 +77,7 @@ class PublicEmbedController extends Controller
     public function chapterSection(Chapter $chapter, Section $section)
     {
         // Only allow published content
-        if (! $chapter->is_published) {
+        if (! $chapter->is_published || ! $chapter->topic?->is_published) {
             abort(404);
         }
 
@@ -121,8 +123,8 @@ class PublicEmbedController extends Controller
 
         $section->loadMissing(['chapter.topic']);
 
-        // Only allow if chapter is published
-        if (! $section->chapter->is_published) {
+        // Only allow if chapter and course are published
+        if (! $section->chapter->is_published || ! $section->chapter->topic?->is_published) {
             abort(404);
         }
 

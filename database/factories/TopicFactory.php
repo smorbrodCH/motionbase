@@ -29,4 +29,9 @@ class TopicFactory extends Factory
             'slug' => Str::slug($title),
         ];
     }
+
+    public function unpublished(): static
+    {
+        return $this->state(fn () => ['is_published' => false]);
+    }
 }

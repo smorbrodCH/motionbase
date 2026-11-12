@@ -25,7 +25,25 @@ class Topic extends Model
         'category_id',
         'title',
         'slug',
+        'is_published',
     ];
+
+    /**
+     * @var array<string, mixed>
+     */
+    protected $attributes = [
+        'is_published' => true,
+    ];
+
+    /**
+     * @return array<string, string>
+     */
+    protected function casts(): array
+    {
+        return [
+            'is_published' => 'boolean',
+        ];
+    }
 
     /**
      * @return Builder<static>

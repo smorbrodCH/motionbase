@@ -83,6 +83,7 @@ export interface Topic {
     title: string;
     slug: string;
     category_id?: number;
+    is_published?: boolean;
     category?: Pick<Category, 'id' | 'name'> | null;
     chapters?: Chapter[];
     activeSection?: Section | null;
