@@ -103,14 +103,22 @@ function TopicCard({ topic }: { topic: Topic }) {
                 <div className="flex h-12 w-12 shrink-0 items-center justify-center rounded-xl bg-zinc-100 transition-colors group-hover:bg-zinc-900 group-hover:text-white">
                     <BookOpen className="h-6 w-6" />
                 </div>
-                {topic.category && (
+                <div className="flex flex-wrap justify-end gap-2">
+                    {topic.category && (
+                        <Badge
+                            variant="secondary"
+                            className="bg-zinc-100 text-xs font-medium text-zinc-600"
+                        >
+                            {topic.category.name}
+                        </Badge>
+                    )}
                     <Badge
-                        variant="secondary"
-                        className="bg-zinc-100 text-xs font-medium text-zinc-600"
+                        variant="outline"
+                        className="border-emerald-200 bg-emerald-50 text-xs font-medium text-emerald-800"
                     >
-                        {topic.category.name}
+                        Veröffentlicht
                     </Badge>
-                )}
+                </div>
             </div>
 
             {/* Content */}
