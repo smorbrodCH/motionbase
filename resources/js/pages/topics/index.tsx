@@ -32,6 +32,14 @@ const STATUS_LABELS: Record<TopicStatus, string> = {
     archived: 'Archiv',
 };
 
+const STATUS_STYLES: Record<TopicStatus, string> = {
+    draft: 'text-zinc-500',
+    private: 'border-sky-200 bg-sky-50 text-sky-800',
+    published: 'border-emerald-200 bg-emerald-50 text-emerald-800',
+    revision: 'border-amber-200 bg-amber-50 text-amber-800',
+    archived: 'text-zinc-500',
+};
+
 const breadcrumbs: BreadcrumbItem[] = [
     {
         title: 'Themen',
@@ -223,14 +231,10 @@ function TopicCard({ topic, onDelete }: { topic: Topic; onDelete: () => void }) 
                                     {topic.category.name}
                                 </Badge>
                             )}
-                            {topic.status && topic.status !== 'published' && (
+                            {topic.status && (
                                 <Badge
                                     variant="outline"
-                                    className={
-                                        topic.status === 'revision'
-                                            ? 'border-amber-200 bg-amber-50 text-xs font-medium text-amber-800'
-                                            : 'text-xs font-medium text-zinc-500'
-                                    }
+                                    className={`text-xs font-medium ${STATUS_STYLES[topic.status]}`}
                                 >
                                     {STATUS_LABELS[topic.status]}
                                 </Badge>
